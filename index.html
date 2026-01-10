@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mus Master Pro</title>
+    <style>
+        :root {
+            --bg-color: #1b5e20;
+            --panel-bg: rgba(0,0,0,0.3);
+            --team-a: #42a5f5;
+            --team-b: #ffca28;
+            --accent: #ffeb3b;
+            --text: #ffffff;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Alineado arriba para dar espacio a los sub-marcadores */
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.4);
+            height: 18vh;
+            min-height: 110px;
+        }
+        
+        .global-score-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 40%;
+        }
+        
+        .score-num { font-size: 2.8rem; font-weight: bold; min-width: 50px; text-align: center; line-height: 1;}
+        
+        .team-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .team-title { 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            border-bottom: 1px dashed rgba(255,255,255,0.3);
+            cursor: text;
+            margin-bottom: 5px;
+        }
+
+        /* Contadores de Vacas y Juegos */
+        .sub-scores {
+            display: flex;
+            gap: 10px;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        .sub-badge {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Area de fichas visuales */
+        .tokens-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+            height: 24px;
+        }
+        
+        .token { width: 14px; height: 14px; border-radius: 50%; box-shadow: 1px 1px 2px black; }
+        .token.amarraco { background: gold; border: 2px solid #b8860b; width: 18px; height: 18px; }
+        .token.piedra { background: white; border: 1px solid #999; }
+
+        /* Botón de Ajustes Central */
+        .settings-btn {
+            font-size: 1.5rem;
+            opacity: 0.7;
+            cursor: pointer;
+            padding: 10px;
+            margin-top: 5px;
+        }
+
+        /* MAIN: Tablero de Control */
+        .main-board {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 80px 1fr 80px; 
+            gap: 5px;
+            padding: 5px;
+        }
+
+        /* Columnas laterales */
+        .side-panel { display: flex; flex-direction: column; justify-content: space-around; }
+
+        .btn-manual {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 8px;
+            height: 18%;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-manual:active { background: rgba(255,255,255,0.4); }
+
+        /* Columna Central */
+        .phases-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        .phase-row {
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            height: 23%;
+            padding: 0 5px;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .phase-row.active {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent);
+        }
+
+        .phase-name { font-size: 0.9rem; width: 60px; font-weight: 600; opacity: 0.8; }
+        .phase-pot { flex: 1; text-align: center; font-size: 2rem; color: var(--accent); font-weight: bold; }
+        .btn-award { background: none; border: none; color: white; font-size: 1.5rem; padding: 0 15px; cursor: pointer; opacity: 0.6; }
+
+        /* FOOTER */
+        .betting-controls {
+            height: 15vh;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 5px;
+            border-top: 2px solid var(--accent);
+        }
+
+        .bet-btn {
+            background: #3e2723;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 10px 0;
+            flex: 1;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 5px;
+            max-width: 100px;
+            cursor: pointer;
+        }
+        .bet-btn.pass { background: #5d4037; color: white; border-color: #8d6e63; }
+
+        /* MODALES (Ajustes y Victoria) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: #263238;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #546e7a;
+        }
+
+        .modal h2 { margin-top: 0; color: var(--accent); }
+        
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+
+        .config-input {
+            width: 60px;
+            padding: 5px;
+            font-size: 1.1rem;
+            text-align: center;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .btn-modal {
+            background: var(--team-a);
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .victory-text { font-size: 2rem; margin-bottom: 20px; font-weight: bold; color: var(--accent); }
+        .sub-victory-text { font-size: 1.2rem; color: white; margin-bottom: 30px; }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="global-score-box" style="flex-direction: row;">
+            <div class="score-num" style="color: var(--team-a);" id="scoreA">0</div>
+            
+            <div class="team-info" style="align-items: flex-start;">
+                <div class="team-title" style="color: var(--team-a);" contenteditable="true" spellcheck="false" id="nameA">XYM</div>
+                <div class="sub-scores">
+                    <div class="sub-badge" style="border: 1px solid var(--team-a);">🏆 <span id="vacasA">0</span></div>
+                    <div class="sub-badge" style="border: 1px solid var(--team-a);">🎮 <span id="gamesA">0</span></div>
+                </div>
+                <div class="tokens-area" id="tokensA" style="justify-content: flex-start;"></div>
+            </div>
+        </div>
+
+        <div class="settings-btn" onclick="openSettings()">⚙️</div>
+
+        <div class="global-score-box" style="flex-direction: row-reverse; text-align: right;">
+            <div class="score-num" style="color: var(--team-b);" id="scoreB">0</div>
+            <div class="team-info" style="align-items: flex-end;">
+                <div class="team-title" style="color: var(--team-b);" contenteditable="true" spellcheck="false" id="nameB">MAHO</div>
+                <div class="sub-scores">
+                    <div class="sub-badge" style="border: 1px solid var(--team-b);">🎮 <span id="gamesB">0</span></div>
+                    <div class="sub-badge" style="border: 1px solid var(--team-b);">🏆 <span id="vacasB">0</span></div>
+                </div>
+                <div class="tokens-area" id="tokensB" style="justify-content: flex-end;"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-board">
+        <div class="side-panel">
+            <button class="btn-manual" style="border-color: var(--team-a); color: var(--team-a);" onclick="manualAdd('A', 1)">+1</button>
+            <button class="btn-manual" style="border-color: var(--team-a); color: var(--team-a);" onclick="manualAdd('A', 2)">+2</button>
+            <button class="btn-manual" style="border-color: var(--team-a); color: var(--team-a);" onclick="manualAdd('A', 3)">+3</button>
+            <button class="btn-manual" style="border-color: #ef5350; color: #ef5350;" onclick="manualAdd('A', -1)">-1</button>
+        </div>
+
+        <div class="phases-container">
+            <div class="phase-row active" onclick="selectPhase(0)" id="row0">
+                <button class="btn-award" onclick="awardPot(0, 'A', event)">◀</button>
+                <div class="phase-name">GRA</div>
+                <div class="phase-pot" id="pot0">0</div>
+                <button class="btn-award" onclick="awardPot(0, 'B', event)">▶</button>
+            </div>
+            <div class="phase-row" onclick="selectPhase(1)" id="row1">
+                <button class="btn-award" onclick="awardPot(1, 'A', event)">◀</button>
+                <div class="phase-name">CHI</div>
+                <div class="phase-pot" id="pot1">0</div>
+                <button class="btn-award" onclick="awardPot(1, 'B', event)">▶</button>
+            </div>
+            <div class="phase-row" onclick="selectPhase(2)" id="row2">
+                <button class="btn-award" onclick="awardPot(2, 'A', event)">◀</button>
+                <div class="phase-name">PAR</div>
+                <div class="phase-pot" id="pot2">0</div>
+                <button class="btn-award" onclick="awardPot(2, 'B', event)">▶</button>
+            </div>
+            <div class="phase-row" onclick="selectPhase(3)" id="row3">
+                <button class="btn-award" onclick="awardPot(3, 'A', event)">◀</button>
+                <div class="phase-name">JUE</div>
+                <div class="phase-pot" id="pot3">0</div>
+                <button class="btn-award" onclick="awardPot(3, 'B', event)">▶</button>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <button class="btn-manual" style="border-color: var(--team-b); color: var(--team-b);" onclick="manualAdd('B', 1)">+1</button>
+            <button class="btn-manual" style="border-color: var(--team-b); color: var(--team-b);" onclick="manualAdd('B', 2)">+2</button>
+            <button class="btn-manual" style="border-color: var(--team-b); color: var(--team-b);" onclick="manualAdd('B', 3)">+3</button>
+            <button class="btn-manual" style="border-color: #ef5350; color: #ef5350;" onclick="manualAdd('B', -1)">-1</button>
+        </div>
+    </div>
+
+    <div class="betting-controls">
+        <div style="color: #aaa; font-size: 0.8rem; width: 60px;">AÑADIR:</div>
+        <button class="bet-btn pass" onclick="addToActivePot(-100)">Borrar</button>
+        <button class="bet-btn" onclick="addToActivePot(1)">+1</button>
+        <button class="bet-btn" onclick="addToActivePot(2)">Envido</button>
+        <button class="bet-btn" onclick="addToActivePot(5)">+5</button>
+        <button class="bet-btn" style="color:red; border-color:red;" onclick="addToActivePot(40)">ÓRDAGO</button>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2>Configuración</h2>
+            
+            <div class="config-row">
+                <span>Piedras por Juego:</span>
+                <select id="confLimit" class="config-input">
+                    <option value="30">30</option>
+                    <option value="40">40</option>
+                </select>
+            </div>
+
+            <div class="config-row">
+                <span>Juegos por Vaca:</span>
+                <input type="number" id="confGames" class="config-input" value="2" min="1">
+            </div>
+            <div style="font-size:0.8rem; color:#aaa; margin-top:-10px; margin-bottom:15px;">("Al mejor de 3" = Pon 2)</div>
+
+            <div class="config-row">
+                <span>Vacas para Ganar:</span>
+                <input type="number" id="confVacas" class="config-input" value="1" min="1">
+            </div>
+
+            <button class="btn-modal" onclick="saveSettings()">Guardar y Reiniciar</button>
+            <button style="background:transparent; border:none; color:#aaa; margin-top:10px; text-decoration:underline;" onclick="closeSettings()">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="modal" id="winModal">
+        <div class="modal-content" style="border-color: var(--accent);">
+            <div class="victory-text" id="winTitle">¡VICTORIA!</div>
+            <div class="sub-victory-text" id="winSubtitle">XYM gana el Juego</div>
+            <button class="btn-modal" id="winBtn" onclick="nextStep()">Continuar</button>
+        </div>
+    </div>
+
+<script>
+    // ESTADO
+    let state = {
+        scores: { A: 0, B: 0 },
+        games: { A: 0, B: 0 },
+        vacas: { A: 0, B: 0 },
+        pots: [0, 0, 0, 0], 
+        activePhase: 0,
+        config: {
+            limit: 30,
+            gamesToWinVaca: 2, // Si es "mejor de 3", gana el que llega a 2
+            vacasToWinMatch: 1
+        }
+    };
+
+    let pendingAction = null; // Para manejar el flujo de modales
+
+    // UI UPDATES
+    function updateUI() {
+        // Marcadores principales (Piedras)
+        document.getElementById('scoreA').innerText = state.scores.A;
+        document.getElementById('scoreB').innerText = state.scores.B;
+        drawTokens('A', state.scores.A);
+        drawTokens('B', state.scores.B);
+
+        // Marcadores secundarios (Juegos y Vacas)
+        document.getElementById('gamesA').innerText = state.games.A;
+        document.getElementById('gamesB').innerText = state.games.B;
+        document.getElementById('vacasA').innerText = state.vacas.A;
+        document.getElementById('vacasB').innerText = state.vacas.B;
+
+        // Botes
+        state.pots.forEach((val, idx) => {
+            const el = document.getElementById(`pot${idx}`);
+            el.innerText = val === 0 ? '-' : val;
+            
+            const row = document.getElementById(`row${idx}`);
+            if (idx === state.activePhase) row.classList.add('active');
+            else row.classList.remove('active');
+
+            const btns = row.querySelectorAll('.btn-award');
+            btns.forEach(b => b.style.opacity = val > 0 ? '1' : '0.3');
+        });
+
+        // Verificar victoria de piedras inmediatamente
+        checkPointsWin();
+    }
+
+    function drawTokens(team, score) {
+        const container = document.getElementById(`tokens${team}`);
+        container.innerHTML = '';
+        const amarracos = Math.floor(score / 5);
+        const piedras = score % 5;
+        for(let i=0; i<amarracos; i++) container.innerHTML += `<div class="token amarraco"></div>`;
+        for(let i=0; i<piedras; i++) container.innerHTML += `<div class="token piedra"></div>`;
+    }
+
+    // GAMEPLAY
+    function selectPhase(idx) { state.activePhase = idx; updateUI(); }
+
+    function addToActivePot(amount) {
+        if (amount === -100) state.pots[state.activePhase] = 0;
+        else state.pots[state.activePhase] += amount;
+        updateUI();
+    }
+
+    function awardPot(phaseIdx, winnerTeam, event) {
+        event.stopPropagation();
+        const potValue = state.pots[phaseIdx];
+        if (potValue === 0) return;
+
+        state.scores[winnerTeam] += potValue;
+        state.pots[phaseIdx] = 0;
+        if (state.activePhase < 3) state.activePhase++;
+        updateUI();
+    }
+
+    function manualAdd(team, amount) {
+        state.scores[team] += amount;
+        if (state.scores[team] < 0) state.scores[team] = 0;
+        updateUI();
+    }
+
+    // WIN
+    function checkPointsWin() {
+        const nameA = document.getElementById('nameA').innerText;
+        const nameB = document.getElementById('nameB').innerText;
+
+        if (state.scores.A >= state.config.limit) triggerWinRound('A', nameA);
+        else if (state.scores.B >= state.config.limit) triggerWinRound('B', nameB);
+    }
+
+    function triggerWinRound(team, name) {
+        showModal(`¡JUEGO PARA ${name}!`, "Se anotan 1 punto de Juego", () => {
+            // Continuar:
+            state.scores.A = 0;
+            state.scores.B = 0;
+            state.games[team]++;
+            state.pots = [0,0,0,0]; // Reset
+            state.activePhase = 0;
+            
+            // Comprobar si gana la Vaca
+            if (state.games[team] >= state.config.gamesToWinVaca) {
+                triggerWinVaca(team, name);
+            } else {
+                updateUI(); // Sigue
+            }
+        });
+    }
+
+    function triggerWinVaca(team, name) {
+        showModal(`¡VACA PARA ${name}!`, "Han ganado los juegos necesarios", () => {
+            state.games.A = 0;
+            state.games.B = 0;
+            state.vacas[team]++;
+
+            // Comprobar si gana la Partida
+            if (state.vacas[team] >= state.config.vacasToWinMatch) {
+                showModal(`¡VICTORIA FINAL!`, `¡${name} HAN GANADO LA PARTIDA!`, () => {
+                    fullReset();
+                }, "Nueva Partida");
+            } else {
+                updateUI();
+            }
+        });
+    }
+
+    function showModal(title, subtitle, callback, btnText="Continuar") {
+        document.getElementById('winTitle').innerText = title;
+        document.getElementById('winSubtitle').innerText = subtitle;
+        document.getElementById('winBtn').innerText = btnText;
+        document.getElementById('winModal').style.display = 'flex';
+        pendingAction = callback;
+    }
+
+    function nextStep() {
+        document.getElementById('winModal').style.display = 'none';
+        const actionToRun = pendingAction;
+        pendingAction = null; 
+        if (actionToRun) actionToRun();
+    }
+
+    // SETTINGS
+    function openSettings() {
+        document.getElementById('confLimit').value = state.config.limit;
+        document.getElementById('confGames').value = state.config.gamesToWinVaca;
+        document.getElementById('confVacas').value = state.config.vacasToWinMatch;
+        document.getElementById('settingsModal').style.display = 'flex';
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').style.display = 'none';
+    }
+
+    function saveSettings() {
+        state.config.limit = parseInt(document.getElementById('confLimit').value);
+        state.config.gamesToWinVaca = parseInt(document.getElementById('confGames').value);
+        state.config.vacasToWinMatch = parseInt(document.getElementById('confVacas').value);
+        fullReset();
+        closeSettings();
+    }
+
+    function fullReset() {
+        state.scores = {A:0, B:0};
+        state.games = {A:0, B:0};
+        state.vacas = {A:0, B:0};
+        state.pots = [0,0,0,0];
+        state.activePhase = 0;
+        updateUI();
+    }
+
+    // INIT
+    updateUI();
+
+</script>
+</body>
+</html>
