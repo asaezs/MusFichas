@@ -155,31 +155,65 @@
         .phase-pot { flex: 1; text-align: center; font-size: 2rem; color: var(--accent); font-weight: bold; }
         .btn-award { background: none; border: none; color: white; font-size: 1.5rem; padding: 0 15px; cursor: pointer; opacity: 0.6; }
 
-        /* FOOTER */
+        /* FOOTER PARA MÓVIL */
         .betting-controls {
-            height: 15vh;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            padding: 5px;
+            height: auto; 
+            min-height: 18vh;
+            background: rgba(0,0,0,0.9);
+            
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; 
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+            
             border-top: 2px solid var(--accent);
+            /* Importante para iPhone X y móviles modernos (zona segura abajo) */
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
 
         .bet-btn {
             background: #3e2723;
             color: var(--accent);
             border: 1px solid var(--accent);
-            padding: 10px 0;
-            flex: 1;
-            font-size: 1.1rem;
+            
+            font-size: 1.3rem;
             font-weight: bold;
-            border-radius: 5px;
-            max-width: 100px;
+            border-radius: 8px;
             cursor: pointer;
+            
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 0;
+            max-width: none;
         }
-        .bet-btn.pass { background: #5d4037; color: white; border-color: #8d6e63; }
+        
+        .bet-btn:active {
+            background: var(--accent);
+            color: black;
+            transform: scale(0.98);
+        }
+
+        /* Estilos específicos para botones especiales */
+        .btn-borrar {
+            background: #5d4037; 
+            color: #ffcccb; 
+            border-color: #8d6e63;
+            font-size: 1rem;
+        }
+        
+        .btn-ordago {
+            grid-column: span 2;
+            background: linear-gradient(45deg, #b71c1c, #d32f2f);
+            color: white;
+            border: 2px solid red;
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
         /* MODALES (Ajustes y Victoria) */
         .modal {
@@ -314,12 +348,12 @@
     </div>
 
     <div class="betting-controls">
-        <div style="color: #aaa; font-size: 0.8rem; width: 60px;">AÑADIR:</div>
-        <button class="bet-btn pass" onclick="addToActivePot(-100)">Borrar</button>
         <button class="bet-btn" onclick="addToActivePot(1)">+1</button>
         <button class="bet-btn" onclick="addToActivePot(2)">Envido</button>
         <button class="bet-btn" onclick="addToActivePot(5)">+5</button>
-        <button class="bet-btn" style="color:red; border-color:red;" onclick="addToActivePot(40)">ÓRDAGO</button>
+        
+        <button class="bet-btn btn-borrar" onclick="addToActivePot(-100)">Borrar</button>
+        <button class="bet-btn btn-ordago" onclick="addToActivePot(40)">ÓRDAGO</button>
     </div>
 
     <div class="modal" id="settingsModal">
