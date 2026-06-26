@@ -677,9 +677,22 @@
             const currentYear = now.getFullYear().toString();
             filteredData = filteredData.filter(row => row[0].includes(currentYear));
         } else if (filter === 'diario') {
-            // Obtenemos la fecha de hoy en el mismo formato que guarda Google Sheets (ej: "26/6/2026")
-            const todayStr = now.toLocaleDateString("es-ES", {timeZone: "Europe/Madrid"});
-            filteredData = filteredData.filter(row => row[0].startsWith(todayStr));
+            // Creamos los números de hoy
+            const d = now.getDate();
+            const m = now.getMonth() + 1;
+            const y = now.getFullYear();
+            
+            // Cubrimos todas las posibilidades que Google y los navegadores pueden generar
+            const format1 = `${d}/${m}/${y}`; // Ej: 26/6/2026
+            const format2 = `${d.toString().padStart(2, '0')}/${m.toString().padStart(2, '0')}/${y}`; // Ej: 26/06/2026
+            const formatISO = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`; // Ej: 2026-06-26T...
+            
+            filteredData = filteredData.filter(row => {
+                if (!row[0]) return false;
+                const dateStr = String(row[0]);
+                // Si la fecha del Excel empieza por cualquiera de los 3 formatos, es de hoy
+                return dateStr.startsWith(format1) || dateStr.startsWith(format2) || dateStr.startsWith(formatISO);
+            });
         }
         
         // Diccionario para contar estadísticas
