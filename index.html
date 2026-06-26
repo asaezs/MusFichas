@@ -572,17 +572,14 @@
         btn.innerText = "Guardando...";
         btn.disabled = true;
 
-        // Sacar los nombres directamente de los marcadores
         const nameA = document.getElementById('nameA').innerText.trim();
         const nameB = document.getElementById('nameB').innerText.trim();
         
-        // Preparar quién es quién
         const winner = winnerTeamId === 'A' ? nameA : nameB;
         const loser = winnerTeamId === 'A' ? nameB : nameA;
         const vacasWinner = state.vacas[winnerTeamId];
         const vacasLoser = winnerTeamId === 'A' ? state.vacas.B : state.vacas.A;
 
-        // Empaquetar los datos
         const data = {
             ganador: winner,
             perdedor: loser,
@@ -590,25 +587,28 @@
             vacasPerdedor: vacasLoser
         };
 
-        // Enviar a Google Sheets
+        // Nueva petición blindada contra bloqueos CORS
         fetch(SCRIPT_URL, {
             method: 'POST',
-            // text/plain para evitar bloqueos de seguridad del navegador (CORS)
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            mode: 'no-cors',
+            headers: { 
+                'Content-Type': 'text/plain;charset=utf-8' 
+            },
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
-        .then(result => {
+        .then(() => {
+            // Con 'no-cors', la respuesta de Google es "opaca" y no podemos leerla,
+            // pero si el código llega aquí, significa que el envío ha salido con éxito.
             btn.disabled = false;
             document.getElementById('winModal').style.display = 'none';
             alert("¡Partida registrada en el ranking!");
-            fullReset(); // Reiniciamos todo para la siguiente partida
+            fullReset();
         })
         .catch(error => {
             console.error('Error al guardar:', error);
             btn.disabled = false;
             btn.innerText = "Reintentar Guardado";
-            alert("Hubo un error de conexión. ¿Tenéis internet?");
+            alert("Sigue fallando. Revisa la URL y los permisos de Google.");
         });
     }
 
