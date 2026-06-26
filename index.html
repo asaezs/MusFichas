@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mus Master Pro</title>
+    <title>Mus Master</title>
     <style>
         :root {
             --bg-color: #1b5e20;
@@ -402,7 +402,7 @@
         activePhase: 0,
         config: {
             limit: 40,
-            gamesToWinVaca: 2, // Si es "mejor de 3", gana el que llega a 2
+            gamesToWinVaca: 3,
             vacasToWinMatch: 1
         }
     };
@@ -511,8 +511,10 @@
             // Comprobar si gana la Partida
             if (state.vacas[team] >= state.config.vacasToWinMatch) {
                 showModal(`¡VICTORIA FINAL!`, `¡${name} HAN GANADO LA PARTIDA!`, () => {
-                    fullReset();
-                }, "Nueva Partida");
+                    
+                    registrarPartida(team);
+                    
+                }, "Guardar Resultado");
             } else {
                 updateUI();
             }
@@ -561,6 +563,53 @@
         state.pots = [0,0,0,0];
         state.activePhase = 0;
         updateUI();
+    }
+
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyp6dfCyRKK_g5C_I0jvM1rsbfuLeNsZ-REyNpXgVcvFWPEQ7TH5QMfjo25BNFe9IoH/exec'; 
+
+    function registrarPartida(winnerTeamId) {
+        const btn = document.getElementById('winBtn');
+        btn.innerText = "Guardando...";
+        btn.disabled = true;
+
+        // Sacar los nombres directamente de los marcadores
+        const nameA = document.getElementById('nameA').innerText.trim();
+        const nameB = document.getElementById('nameB').innerText.trim();
+        
+        // Preparar quién es quién
+        const winner = winnerTeamId === 'A' ? nameA : nameB;
+        const loser = winnerTeamId === 'A' ? nameB : nameA;
+        const vacasWinner = state.vacas[winnerTeamId];
+        const vacasLoser = winnerTeamId === 'A' ? state.vacas.B : state.vacas.A;
+
+        // Empaquetar los datos
+        const data = {
+            ganador: winner,
+            perdedor: loser,
+            vacasGanador: vacasWinner,
+            vacasPerdedor: vacasLoser
+        };
+
+        // Enviar a Google Sheets
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            // text/plain para evitar bloqueos de seguridad del navegador (CORS)
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            btn.disabled = false;
+            document.getElementById('winModal').style.display = 'none';
+            alert("¡Partida registrada en el ranking!");
+            fullReset(); // Reiniciamos todo para la siguiente partida
+        })
+        .catch(error => {
+            console.error('Error al guardar:', error);
+            btn.disabled = false;
+            btn.innerText = "Reintentar Guardado";
+            alert("Hubo un error de conexión. ¿Tenéis internet?");
+        });
     }
 
     // INIT
