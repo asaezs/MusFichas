@@ -637,19 +637,19 @@
 
     // --- SISTEMA DE RANKING ---
     let globalRankingData = []; 
-    let currentFilter = 'global';
+    let currentFilter = 'global'; // Guardamos el filtro activo para el buscador
 
     async function loadRanking() {
         document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; padding:20px; color:#aaa;'>Cargando datos...</div>";
         document.getElementById('rankingModal').style.display = 'flex';
-        document.getElementById('searchTeam').value = ''; // Limpiar
+        document.getElementById('searchTeam').value = ''; // Limpiar el buscador al abrir
         
         try {
             const response = await fetch(SCRIPT_URL); 
             const data = await response.json();
             
             globalRankingData = data; 
-            renderRanking('global');
+            renderRanking('global'); // Por defecto cargamos el histórico
         } catch (error) {
             console.error(error);
             document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; color:#ef5350;'>Error al cargar los datos.</div>";
@@ -657,8 +657,9 @@
     }
 
     function renderRanking(filter) {
-        currentFilter = filter; // Actualizamos
+        currentFilter = filter; // Actualizamos el estado
         
+        // Estilos de los botones
         document.getElementById('btnFilterGlobal').style.borderColor = filter === 'global' ? 'var(--accent)' : '#555';
         document.getElementById('btnFilterGlobal').style.color = filter === 'global' ? 'var(--accent)' : '#aaa';
         
@@ -676,6 +677,7 @@
             const currentYear = now.getFullYear().toString();
             filteredData = filteredData.filter(row => row[0].includes(currentYear));
         } else if (filter === 'diario') {
+            // Obtenemos la fecha de hoy en el mismo formato que guarda Google Sheets (ej: "26/6/2026")
             const todayStr = now.toLocaleDateString("es-ES", {timeZone: "Europe/Madrid"});
             filteredData = filteredData.filter(row => row[0].startsWith(todayStr));
         }
@@ -697,17 +699,18 @@
             stats[perdedor].vacas += parseInt(vacasPerdedor) || 0;
         });
         
-        // pasamos a minúsculas
+        // Leemos el texto del buscador y lo pasamos a minúsculas para que no sea sensible a mayúsculas
         const searchTerm = document.getElementById('searchTeam').value.toLowerCase();
         
         // Convertimos a array, aplicamos el buscador y ordenamos
         const sortedTeams = Object.keys(stats)
-            .filter(team => team.toLowerCase().includes(searchTerm))
+            .filter(team => team.toLowerCase().includes(searchTerm)) // Filtro del buscador
             .sort((a, b) => {
                 if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
-                return stats[b].vacas - stats[a].vacas;
+                return stats[b].vacas - stats[a].vacas; // Desempate por vacas
             });
         
+        // Construimos la tabla visual
         let html = `
             <table style="width:100%; border-collapse: collapse; font-size: 1.1rem;">
                 <tr style="border-bottom: 2px solid #546e7a; color:var(--accent);">
@@ -718,6 +721,7 @@
         `;
         
         sortedTeams.forEach((team, index) => {
+            // Las medallas solo tienen sentido si no estás buscando nada específico
             let medal = (index === 0 && searchTerm === '') ? '🥇 ' : 
                         (index === 1 && searchTerm === '') ? '🥈 ' : 
                         (index === 2 && searchTerm === '') ? '🥉 ' : 
