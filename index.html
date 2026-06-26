@@ -401,6 +401,13 @@
             <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
                 <button class="btn-manual" id="btnFilterGlobal" style="height:auto; padding:5px 15px;" onclick="renderRanking('global')">Global</button>
                 <button class="btn-manual" id="btnFilterAnual" style="height:auto; padding:5px 15px;" onclick="renderRanking('anual')">Anual</button>
+                <button class="btn-manual" id="btnFilterDiario" style="height:auto; padding:5px 15px;" onclick="renderRanking('diario')">Diario</button>
+            </div>
+
+            <div style="margin-bottom: 15px; padding: 0 5px;">
+                <input type="text" id="searchTeam" placeholder="🔍 Buscar equipo..." 
+                       style="width: 100%; padding: 10px; border-radius: 8px; border: none; text-align: center; font-size: 1.1rem; background: rgba(255,255,255,0.1); color: white; outline: none;" 
+                       oninput="renderRanking(currentFilter)" autocomplete="off">
             </div>
 
             <div id="rankingContent" style="overflow-y: auto; flex: 1; min-height: 150px; text-align: left;">
@@ -632,13 +639,14 @@
 
     // --- SISTEMA DE RANKING ---
     let globalRankingData = []; 
+    let currentFilter = 'global'; // Guardamos el filtro activo para el buscador
 
     async function loadRanking() {
         document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; padding:20px; color:#aaa;'>Cargando datos...</div>";
         document.getElementById('rankingModal').style.display = 'flex';
+        document.getElementById('searchTeam').value = ''; // Limpiar el buscador al abrir
         
         try {
-            // Hacemos una petición GET a la misma URL de Google
             const response = await fetch(SCRIPT_URL); 
             const data = await response.json();
             
@@ -651,6 +659,8 @@
     }
 
     function renderRanking(filter) {
+        currentFilter = filter; // Actualizamos el estado
+        
         // Estilos de los botones
         document.getElementById('btnFilterGlobal').style.borderColor = filter === 'global' ? 'var(--accent)' : '#555';
         document.getElementById('btnFilterGlobal').style.color = filter === 'global' ? 'var(--accent)' : '#aaa';
@@ -658,12 +668,20 @@
         document.getElementById('btnFilterAnual').style.borderColor = filter === 'anual' ? 'var(--accent)' : '#555';
         document.getElementById('btnFilterAnual').style.color = filter === 'anual' ? 'var(--accent)' : '#aaa';
 
-        const currentYear = new Date().getFullYear().toString();
+        document.getElementById('btnFilterDiario').style.borderColor = filter === 'diario' ? 'var(--accent)' : '#555';
+        document.getElementById('btnFilterDiario').style.color = filter === 'diario' ? 'var(--accent)' : '#aaa';
+
         let filteredData = globalRankingData;
+        const now = new Date();
         
-        // Filtramos por año si han tocado el botón "Anual"
+        // Filtrado por Fecha (Anual o Diario)
         if (filter === 'anual') {
+            const currentYear = now.getFullYear().toString();
             filteredData = filteredData.filter(row => row[0].includes(currentYear));
+        } else if (filter === 'diario') {
+            // Obtenemos la fecha de hoy en el mismo formato que guarda Google Sheets (ej: "26/6/2026")
+            const todayStr = now.toLocaleDateString("es-ES", {timeZone: "Europe/Madrid"});
+            filteredData = filteredData.filter(row => row[0].startsWith(todayStr));
         }
         
         // Diccionario para contar estadísticas
@@ -671,7 +689,7 @@
         
         filteredData.forEach(row => {
             const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor] = row;
-            if(!ganador) return; // Saltamos filas vacías
+            if(!ganador) return; 
             
             if (!stats[ganador]) stats[ganador] = { victorias: 0, derrotas: 0, vacas: 0 };
             if (!stats[perdedor]) stats[perdedor] = { victorias: 0, derrotas: 0, vacas: 0 };
@@ -683,11 +701,16 @@
             stats[perdedor].vacas += parseInt(vacasPerdedor) || 0;
         });
         
-        // Convertimos el diccionario a un array y lo ordenamos por Victorias (y si empatan, por Vacas)
-        const sortedTeams = Object.keys(stats).sort((a, b) => {
-            if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
-            return stats[b].vacas - stats[a].vacas;
-        });
+        // Leemos el texto del buscador y lo pasamos a minúsculas para que no sea sensible a mayúsculas
+        const searchTerm = document.getElementById('searchTeam').value.toLowerCase();
+        
+        // Convertimos a array, aplicamos el buscador y ordenamos
+        const sortedTeams = Object.keys(stats)
+            .filter(team => team.toLowerCase().includes(searchTerm)) // Filtro del buscador
+            .sort((a, b) => {
+                if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
+                return stats[b].vacas - stats[a].vacas; // Desempate por vacas
+            });
         
         // Construimos la tabla visual
         let html = `
@@ -700,10 +723,15 @@
         `;
         
         sortedTeams.forEach((team, index) => {
-            let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : `<span style="opacity:0.5">${index+1}.</span> `;
+            // Las medallas solo tienen sentido si no estás buscando nada específico
+            let medal = (index === 0 && searchTerm === '') ? '🥇 ' : 
+                        (index === 1 && searchTerm === '') ? '🥈 ' : 
+                        (index === 2 && searchTerm === '') ? '🥉 ' : 
+                        `<span style="opacity:0.5">${index+1}.</span> `;
+            
             html += `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <td style="padding:12px 5px;">${medal} ${team}</td>
+                    <td style="padding:12px 5px; word-break: break-all;">${medal} ${team}</td>
                     <td style="padding:12px 5px; text-align:center; font-weight:bold; color:#81c784;">${stats[team].victorias}</td>
                     <td style="padding:12px 5px; text-align:center; color:#e57373;">${stats[team].derrotas}</td>
                 </tr>
@@ -711,7 +739,9 @@
         });
         html += `</table>`;
         
-        if (sortedTeams.length === 0) html = `<div style="text-align:center; padding:20px; color:#aaa;">Aún no hay partidas.</div>`;
+        if (sortedTeams.length === 0) {
+            html = `<div style="text-align:center; padding:30px 10px; color:#aaa;">No se encontraron resultados para esta búsqueda o fecha.</div>`;
+        }
         
         document.getElementById('rankingContent').innerHTML = html;
     }
