@@ -92,14 +92,13 @@
         .token.amarraco { background: gold; border: 2px solid #b8860b; width: 18px; height: 18px; }
         .token.piedra { background: white; border: 1px solid #999; }
 
-        /* Botón de Ajustes Central */
-        .settings-btn {
+        /* Botón de Ajustes Central 
             font-size: 1.5rem;
             opacity: 0.7;
             cursor: pointer;
             padding: 10px;
             margin-top: 5px;
-        }
+        }*/
 
         /* MAIN: Tablero de Control */
         .main-board {
@@ -289,7 +288,10 @@
             </div>
         </div>
 
-        <div class="settings-btn" onclick="openSettings()">⚙️</div>
+        <div style="display: flex; gap: 15px; font-size: 1.5rem; margin-top: 5px;">
+            <div style="opacity: 0.7; cursor: pointer;" onclick="loadRanking()">🏆</div>
+            <div style="opacity: 0.7; cursor: pointer;" onclick="openSettings()">⚙️</div>
+        </div>
 
         <div class="global-score-box" style="flex-direction: row-reverse; text-align: right;">
             <div class="score-num" style="color: var(--team-b);" id="scoreB">0</div>
@@ -389,6 +391,22 @@
             <div class="victory-text" id="winTitle">¡VICTORIA!</div>
             <div class="sub-victory-text" id="winSubtitle">XYM gana el Juego</div>
             <button class="btn-modal" id="winBtn" onclick="nextStep()">Continuar</button>
+        </div>
+    </div>
+
+    <div class="modal" id="rankingModal">
+        <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
+            <h2>Clasificación</h2>
+            
+            <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
+                <button class="btn-manual" id="btnFilterGlobal" style="height:auto; padding:5px 15px;" onclick="renderRanking('global')">Global</button>
+                <button class="btn-manual" id="btnFilterAnual" style="height:auto; padding:5px 15px;" onclick="renderRanking('anual')">Anual</button>
+            </div>
+
+            <div id="rankingContent" style="overflow-y: auto; flex: 1; min-height: 150px; text-align: left;">
+                </div>
+
+            <button style="background:transparent; border:none; color:#aaa; margin-top:20px; text-decoration:underline; font-size:1.1rem;" onclick="closeRanking()">Cerrar</button>
         </div>
     </div>
 
@@ -610,6 +628,96 @@
             btn.innerText = "Reintentar Guardado";
             alert("Sigue fallando. Revisa la URL y los permisos de Google.");
         });
+    }
+
+    // --- SISTEMA DE RANKING ---
+    let globalRankingData = []; 
+
+    async function loadRanking() {
+        document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; padding:20px; color:#aaa;'>Cargando datos...</div>";
+        document.getElementById('rankingModal').style.display = 'flex';
+        
+        try {
+            // Hacemos una petición GET a la misma URL de Google
+            const response = await fetch(SCRIPT_URL); 
+            const data = await response.json();
+            
+            globalRankingData = data; 
+            renderRanking('global'); // Por defecto cargamos el histórico
+        } catch (error) {
+            console.error(error);
+            document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; color:#ef5350;'>Error al cargar los datos.</div>";
+        }
+    }
+
+    function renderRanking(filter) {
+        // Estilos de los botones
+        document.getElementById('btnFilterGlobal').style.borderColor = filter === 'global' ? 'var(--accent)' : '#555';
+        document.getElementById('btnFilterGlobal').style.color = filter === 'global' ? 'var(--accent)' : '#aaa';
+        
+        document.getElementById('btnFilterAnual').style.borderColor = filter === 'anual' ? 'var(--accent)' : '#555';
+        document.getElementById('btnFilterAnual').style.color = filter === 'anual' ? 'var(--accent)' : '#aaa';
+
+        const currentYear = new Date().getFullYear().toString();
+        let filteredData = globalRankingData;
+        
+        // Filtramos por año si han tocado el botón "Anual"
+        if (filter === 'anual') {
+            filteredData = filteredData.filter(row => row[0].includes(currentYear));
+        }
+        
+        // Diccionario para contar estadísticas
+        const stats = {};
+        
+        filteredData.forEach(row => {
+            const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor] = row;
+            if(!ganador) return; // Saltamos filas vacías
+            
+            if (!stats[ganador]) stats[ganador] = { victorias: 0, derrotas: 0, vacas: 0 };
+            if (!stats[perdedor]) stats[perdedor] = { victorias: 0, derrotas: 0, vacas: 0 };
+            
+            stats[ganador].victorias++;
+            stats[ganador].vacas += parseInt(vacasGanador) || 0;
+            
+            stats[perdedor].derrotas++;
+            stats[perdedor].vacas += parseInt(vacasPerdedor) || 0;
+        });
+        
+        // Convertimos el diccionario a un array y lo ordenamos por Victorias (y si empatan, por Vacas)
+        const sortedTeams = Object.keys(stats).sort((a, b) => {
+            if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
+            return stats[b].vacas - stats[a].vacas;
+        });
+        
+        // Construimos la tabla visual
+        let html = `
+            <table style="width:100%; border-collapse: collapse; font-size: 1.1rem;">
+                <tr style="border-bottom: 2px solid #546e7a; color:var(--accent);">
+                    <th style="padding:10px 5px; text-align:left;">Equipo</th>
+                    <th style="padding:10px 5px; text-align:center;">V</th>
+                    <th style="padding:10px 5px; text-align:center;">D</th>
+                </tr>
+        `;
+        
+        sortedTeams.forEach((team, index) => {
+            let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : `<span style="opacity:0.5">${index+1}.</span> `;
+            html += `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <td style="padding:12px 5px;">${medal} ${team}</td>
+                    <td style="padding:12px 5px; text-align:center; font-weight:bold; color:#81c784;">${stats[team].victorias}</td>
+                    <td style="padding:12px 5px; text-align:center; color:#e57373;">${stats[team].derrotas}</td>
+                </tr>
+            `;
+        });
+        html += `</table>`;
+        
+        if (sortedTeams.length === 0) html = `<div style="text-align:center; padding:20px; color:#aaa;">Aún no hay partidas.</div>`;
+        
+        document.getElementById('rankingContent').innerHTML = html;
+    }
+
+    function closeRanking() {
+        document.getElementById('rankingModal').style.display = 'none';
     }
 
     // INIT
