@@ -698,18 +698,30 @@
         // Diccionario para contar estadísticas
         const stats = {};
         
+        // Función auxiliar para detectar los nombres por defecto (ignorando espacios o minúsculas)
+        const isDefault = (name) => {
+            if (!name) return true;
+            const cleanName = String(name).trim().toUpperCase();
+            return cleanName === 'XYM' || cleanName === 'MAHO';
+        };
+
         filteredData.forEach(row => {
             const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor] = row;
             if(!ganador) return; 
             
-            if (!stats[ganador]) stats[ganador] = { victorias: 0, derrotas: 0, vacas: 0 };
-            if (!stats[perdedor]) stats[perdedor] = { victorias: 0, derrotas: 0, vacas: 0 };
+            // Solo sumamos al ganador si NO es un nombre por defecto
+            if (!isDefault(ganador)) {
+                if (!stats[ganador]) stats[ganador] = { victorias: 0, derrotas: 0, vacas: 0 };
+                stats[ganador].victorias++;
+                stats[ganador].vacas += parseInt(vacasGanador) || 0;
+            }
             
-            stats[ganador].victorias++;
-            stats[ganador].vacas += parseInt(vacasGanador) || 0;
-            
-            stats[perdedor].derrotas++;
-            stats[perdedor].vacas += parseInt(vacasPerdedor) || 0;
+            // Solo sumamos al perdedor si NO es un nombre por defecto
+            if (!isDefault(perdedor)) {
+                if (!stats[perdedor]) stats[perdedor] = { victorias: 0, derrotas: 0, vacas: 0 };
+                stats[perdedor].derrotas++;
+                stats[perdedor].vacas += parseInt(vacasPerdedor) || 0;
+            }
         });
         
         // Leemos el texto del buscador y lo pasamos a minúsculas para que no sea sensible a mayúsculas
