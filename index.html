@@ -465,6 +465,12 @@
     let allPlayers = new Set();
     let currentMode = 'equipos'; // 'equipos' o 'jugadores'
 
+    const isDefault = (name) => {
+        if (!name) return true;
+        const cleanName = String(name).trim().toUpperCase();
+        return cleanName === 'XYM' || cleanName === 'MAHO' || cleanName === 'EQ. A' || cleanName === 'EQ. B';
+    };
+
     // Extrae jugadores únicos del Excel para llenar el desplegable
     function updatePlayersList(data) {
         allPlayers.clear();
@@ -789,13 +795,6 @@
         
         // Diccionario para contar estadísticas
         const stats = {};
-        
-        // Función auxiliar para detectar los nombres por defecto (ignorando espacios o minúsculas)
-        const isDefault = (name) => {
-            if (!name) return true;
-            const cleanName = String(name).trim().toUpperCase();
-            return cleanName === 'XYM' || cleanName === 'MAHO' || cleanName === 'EQ. A' || cleanName === 'EQ. B';
-        };
 
         filteredData.forEach(row => {
             const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor] = row;
