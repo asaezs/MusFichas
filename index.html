@@ -279,7 +279,7 @@
             <div class="score-num" style="color: var(--team-a);" id="scoreA">0</div>
             
             <div class="team-info" style="align-items: flex-start;">
-                <div class="team-title" style="color: var(--team-a);" contenteditable="true" spellcheck="false" id="nameA">XYM</div>
+                <div class="team-title" style="color: var(--team-a); cursor: pointer; max-width: 140px; word-wrap: break-word; text-align: center;" onclick="openTeamModal('A')" id="nameA">Eq. A</div>
                 <div class="sub-scores">
                     <div class="sub-badge" style="border: 1px solid var(--team-a);">🏆 <span id="vacasA">0</span></div>
                     <div class="sub-badge" style="border: 1px solid var(--team-a);">🎮 <span id="gamesA">0</span></div>
@@ -296,7 +296,7 @@
         <div class="global-score-box" style="flex-direction: row-reverse; text-align: right;">
             <div class="score-num" style="color: var(--team-b);" id="scoreB">0</div>
             <div class="team-info" style="align-items: flex-end;">
-                <div class="team-title" style="color: var(--team-b);" contenteditable="true" spellcheck="false" id="nameB">MAHO</div>
+                <div class="team-title" style="color: var(--team-b); cursor: pointer; max-width: 140px; word-wrap: break-word; text-align: center;" onclick="openTeamModal('B')" id="nameB">Eq. B</div>
                 <div class="sub-scores">
                     <div class="sub-badge" style="border: 1px solid var(--team-b);">🎮 <span id="gamesB">0</span></div>
                     <div class="sub-badge" style="border: 1px solid var(--team-b);">🏆 <span id="vacasB">0</span></div>
@@ -397,6 +397,11 @@
     <div class="modal" id="rankingModal">
         <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
             <h2>Clasificación</h2>
+
+            <div style="display:flex; justify-content:center; gap:10px; margin-bottom:10px;">
+                <button class="btn-manual" id="btnModeEquipos" style="height:auto; padding:5px 15px; border-color: var(--accent); color: var(--accent);" onclick="setRankingMode('equipos')">👥 Equipos</button>
+                <button class="btn-manual" id="btnModeJugadores" style="height:auto; padding:5px 15px; border-color: #555; color: #aaa;" onclick="setRankingMode('jugadores')">👤 Jugadores</button>
+            </div>
             
             <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
                 <button class="btn-manual" id="btnFilterGlobal" style="height:auto; padding:5px 15px;" onclick="renderRanking('global')">Global</button>
@@ -417,6 +422,27 @@
         </div>
     </div>
 
+    <datalist id="playersList"></datalist>
+
+    <div class="modal" id="teamModal">
+        <div class="modal-content">
+            <h2 id="teamModalTitle">Configurar Equipo</h2>
+            
+            <div class="config-row">
+                <span style="font-size: 1rem;">Jugador 1:</span>
+                <input type="text" id="player1Input" list="playersList" class="config-input" style="width: 160px; text-align:left; background: rgba(255,255,255,0.1); color: white;" placeholder="Buscar o crear...">
+            </div>
+            
+            <div class="config-row">
+                <span style="font-size: 1rem;">Jugador 2:</span>
+                <input type="text" id="player2Input" list="playersList" class="config-input" style="width: 160px; text-align:left; background: rgba(255,255,255,0.1); color: white;" placeholder="Opcional...">
+            </div>
+
+            <button class="btn-modal" onclick="saveTeam()">Guardar Equipo</button>
+            <button style="background:transparent; border:none; color:#aaa; margin-top:15px; text-decoration:underline; font-size:1.1rem;" onclick="closeTeamModal()">Cancelar</button>
+        </div>
+    </div>
+
 <script>
     // ESTADO
     let state = {
@@ -433,6 +459,72 @@
     };
 
     let pendingAction = null; // Para manejar el flujo de modales
+
+    // --- GESTIÓN DE EQUIPOS Y JUGADORES ---
+    let editingTeam = 'A';
+    let allPlayers = new Set();
+    let currentMode = 'equipos'; // 'equipos' o 'jugadores'
+
+    // Extrae jugadores únicos del Excel para llenar el desplegable
+    function updatePlayersList(data) {
+        allPlayers.clear();
+        data.forEach(row => {
+            const ganadores = row[1] ? String(row[1]).split(' - ') : [];
+            const perdedores = row[2] ? String(row[2]).split(' - ') : [];
+            ganadores.forEach(p => { if(p && !isDefault(p)) allPlayers.add(p.trim()) });
+            perdedores.forEach(p => { if(p && !isDefault(p)) allPlayers.add(p.trim()) });
+        });
+        
+        const datalist = document.getElementById('playersList');
+        datalist.innerHTML = '';
+        Array.from(allPlayers).sort().forEach(player => {
+            const option = document.createElement('option');
+            option.value = player;
+            datalist.appendChild(option);
+        });
+    }
+
+    function openTeamModal(team) {
+        editingTeam = team;
+        document.getElementById('teamModalTitle').innerText = `Configurar Equipo ${team}`;
+        
+        const currentName = document.getElementById(`name${team}`).innerText;
+        const parts = currentName.split(' - ');
+        
+        document.getElementById('player1Input').value = isDefault(parts[0]) ? '' : parts[0];
+        document.getElementById('player2Input').value = parts[1] || '';
+        
+        document.getElementById('teamModal').style.display = 'flex';
+    }
+
+    function closeTeamModal() {
+        document.getElementById('teamModal').style.display = 'none';
+    }
+
+    function saveTeam() {
+        const p1 = document.getElementById('player1Input').value.trim();
+        const p2 = document.getElementById('player2Input').value.trim();
+        
+        let finalName = '';
+        if (p1 && p2) finalName = `${p1} - ${p2}`;
+        else if (p1) finalName = p1;
+        else if (p2) finalName = p2;
+        else finalName = `Eq. ${editingTeam}`;
+
+        document.getElementById(`name${editingTeam}`).innerText = finalName;
+        closeTeamModal();
+    }
+
+    function setRankingMode(mode) {
+        currentMode = mode;
+        // Actualizar estilos visuales de los botones
+        document.getElementById('btnModeEquipos').style.borderColor = mode === 'equipos' ? 'var(--accent)' : '#555';
+        document.getElementById('btnModeEquipos').style.color = mode === 'equipos' ? 'var(--accent)' : '#aaa';
+        document.getElementById('btnModeJugadores').style.borderColor = mode === 'jugadores' ? 'var(--accent)' : '#555';
+        document.getElementById('btnModeJugadores').style.color = mode === 'jugadores' ? 'var(--accent)' : '#aaa';
+        
+        renderRanking(currentFilter);
+    }
 
     // UI UPDATES
     function updateUI() {
@@ -702,26 +794,34 @@
         const isDefault = (name) => {
             if (!name) return true;
             const cleanName = String(name).trim().toUpperCase();
-            return cleanName === 'XYM' || cleanName === 'MAHO';
+            return cleanName === 'XYM' || cleanName === 'MAHO' || cleanName === 'EQ. A' || cleanName === 'EQ. B';
         };
 
         filteredData.forEach(row => {
             const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor] = row;
             if(!ganador) return; 
-            
-            // Solo sumamos al ganador si NO es un nombre por defecto
-            if (!isDefault(ganador)) {
-                if (!stats[ganador]) stats[ganador] = { victorias: 0, derrotas: 0, vacas: 0 };
-                stats[ganador].victorias++;
-                stats[ganador].vacas += parseInt(vacasGanador) || 0;
-            }
-            
-            // Solo sumamos al perdedor si NO es un nombre por defecto
-            if (!isDefault(perdedor)) {
-                if (!stats[perdedor]) stats[perdedor] = { victorias: 0, derrotas: 0, vacas: 0 };
-                stats[perdedor].derrotas++;
-                stats[perdedor].vacas += parseInt(vacasPerdedor) || 0;
-            }
+
+            // Si estamos en modo jugadores, separamos por el guion. Si no, lo dejamos entero.
+            let ganadoresArray = currentMode === 'jugadores' ? String(ganador).split(' - ') : [ganador];
+            let perdedoresArray = currentMode === 'jugadores' ? String(perdedor).split(' - ') : [perdedor];
+
+            ganadoresArray.forEach(p => {
+                const entity = String(p).trim();
+                if (!isDefault(entity)) {
+                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0 };
+                    stats[entity].victorias++;
+                    stats[entity].vacas += parseInt(vacasGanador) || 0;
+                }
+            });
+
+            perdedoresArray.forEach(p => {
+                const entity = String(p).trim();
+                if (!isDefault(entity)) {
+                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0 };
+                    stats[entity].derrotas++;
+                    stats[entity].vacas += parseInt(vacasPerdedor) || 0;
+                }
+            });
         });
         
         // Leemos el texto del buscador y lo pasamos a minúsculas para que no sea sensible a mayúsculas
@@ -775,6 +875,14 @@
 
     // INIT
     updateUI();
+
+    // Descarga silenciosa para tener los nombres listos en el autocompletado
+    fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+            globalRankingData = data;
+            updatePlayersList(data);
+        }).catch(e => console.log("Carga silenciosa fallida, requiere internet."));
 
 </script>
 </body>
