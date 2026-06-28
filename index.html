@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mus Master</title>
+    <title>MusMaho</title>
     <style>
         :root {
             --bg-color: #1b5e20;
@@ -512,7 +512,13 @@
         const p2 = document.getElementById('player2Input').value.trim();
         
         let finalName = '';
-        if (p1 && p2) finalName = `${p1} - ${p2}`;
+        
+        if (p1 && p2) {
+            // Metemos los nombres en un array y los ordenamos alfabéticamente
+            // localeCompare ayuda a ordenar bien sin importar mayúsculas o tildes
+            const players = [p1, p2].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+            finalName = `${players[0]} - ${players[1]}`;
+        }
         else if (p1) finalName = p1;
         else if (p2) finalName = p2;
         else finalName = `Eq. ${editingTeam}`;
@@ -626,6 +632,11 @@
     }
 
     function triggerWinVaca(team, name) {
+        // MAGIA AQUÍ: Calculamos los juegos exactos justo antes de resetearlos.
+        // Fórmula: Juegos actuales en el marcador + (Vacas que ya tenían * Juegos por vaca)
+        const juegosA_totales = state.games.A + (state.vacas.A * state.config.gamesToWinVaca);
+        const juegosB_totales = state.games.B + (state.vacas.B * state.config.gamesToWinVaca);
+
         showModal(`¡VACA PARA ${name}!`, "Han ganado los juegos necesarios", () => {
             state.games.A = 0;
             state.games.B = 0;
@@ -635,7 +646,8 @@
             if (state.vacas[team] >= state.config.vacasToWinMatch) {
                 showModal(`¡VICTORIA FINAL!`, `¡${name} HAN GANADO LA PARTIDA!`, () => {
                     
-                    registrarPartida(team);
+                    // Le enviamos a la base de datos la "foto" de los juegos que tomamos arriba
+                    registrarPartida(team, juegosA_totales, juegosB_totales);
                     
                 }, "Guardar Resultado");
             } else {
@@ -690,7 +702,7 @@
 
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbytJK-XTQKNS_6u31DhQDXfvV4SNd3TgXF53RhAlTJTlw4L1xH94oN5jtcThMMPGso/exec'; 
 
-    function registrarPartida(winnerTeamId) {
+    function registrarPartida(winnerTeamId, totalGamesA, totalGamesB) {
         const btn = document.getElementById('winBtn');
         btn.innerText = "Guardando...";
         btn.disabled = true;
@@ -703,11 +715,17 @@
         const vacasWinner = state.vacas[winnerTeamId];
         const vacasLoser = winnerTeamId === 'A' ? state.vacas.B : state.vacas.A;
 
+        // Asignamos los juegos según quién haya ganado
+        const juegosWinner = winnerTeamId === 'A' ? totalGamesA : totalGamesB;
+        const juegosLoser = winnerTeamId === 'A' ? totalGamesB : totalGamesA;
+
         const data = {
             ganador: winner,
             perdedor: loser,
             vacasGanador: vacasWinner,
-            vacasPerdedor: vacasLoser
+            vacasPerdedor: vacasLoser,
+            juegosGanador: juegosWinner, // Enviamos los juegos
+            juegosPerdedor: juegosLoser  // Enviamos los juegos
         };
 
         // Nueva petición blindada contra bloqueos CORS
@@ -797,55 +815,57 @@
         const stats = {};
 
         filteredData.forEach(row => {
-            const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor] = row;
+            // Añadimos juegosGanador y juegosPerdedor a la lectura de la fila
+            const [fecha, ganador, perdedor, vacasGanador, vacasPerdedor, juegosGanador, juegosPerdedor] = row;
             if(!ganador) return; 
 
-            // Si estamos en modo jugadores, separamos por el guion. Si no, lo dejamos entero.
             let ganadoresArray = currentMode === 'jugadores' ? String(ganador).split(' - ') : [ganador];
             let perdedoresArray = currentMode === 'jugadores' ? String(perdedor).split(' - ') : [perdedor];
 
             ganadoresArray.forEach(p => {
                 const entity = String(p).trim();
                 if (!isDefault(entity)) {
-                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0 };
+                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0, juegos: 0 };
                     stats[entity].victorias++;
                     stats[entity].vacas += parseInt(vacasGanador) || 0;
+                    stats[entity].juegos += parseInt(juegosGanador) || 0; // Sumamos los juegos
                 }
             });
 
             perdedoresArray.forEach(p => {
                 const entity = String(p).trim();
                 if (!isDefault(entity)) {
-                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0 };
+                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0, juegos: 0 };
                     stats[entity].derrotas++;
                     stats[entity].vacas += parseInt(vacasPerdedor) || 0;
+                    stats[entity].juegos += parseInt(juegosPerdedor) || 0; // Sumamos los juegos
                 }
             });
         });
         
-        // Leemos el texto del buscador y lo pasamos a minúsculas para que no sea sensible a mayúsculas
         const searchTerm = document.getElementById('searchTeam').value.toLowerCase();
         
-        // Convertimos a array, aplicamos el buscador y ordenamos
+        // Ordenamos por Victorias > Vacas > Juegos
         const sortedTeams = Object.keys(stats)
-            .filter(team => team.toLowerCase().includes(searchTerm)) // Filtro del buscador
+            .filter(team => team.toLowerCase().includes(searchTerm)) 
             .sort((a, b) => {
                 if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
-                return stats[b].vacas - stats[a].vacas; // Desempate por vacas
+                if (stats[b].vacas !== stats[a].vacas) return stats[b].vacas - stats[a].vacas;
+                return stats[b].juegos - stats[a].juegos; // Tercer desempate: Juegos
             });
         
-        // Construimos la tabla visual
+        // Construimos la tabla visual con la nueva columna
         let html = `
             <table style="width:100%; border-collapse: collapse; font-size: 1.1rem;">
                 <tr style="border-bottom: 2px solid #546e7a; color:var(--accent);">
-                    <th style="padding:10px 5px; text-align:left;">Equipo</th>
+                    <th style="padding:10px 5px; text-align:left;">Nombre</th>
                     <th style="padding:10px 5px; text-align:center;">V</th>
                     <th style="padding:10px 5px; text-align:center;">D</th>
+                    <th style="padding:10px 5px; text-align:center;">J</th>
                 </tr>
         `;
         
         sortedTeams.forEach((team, index) => {
-            // Las medallas solo tienen sentido si no estás buscando nada específico
             let medal = (index === 0 && searchTerm === '') ? '🥇 ' : 
                         (index === 1 && searchTerm === '') ? '🥈 ' : 
                         (index === 2 && searchTerm === '') ? '🥉 ' : 
@@ -856,6 +876,7 @@
                     <td style="padding:12px 5px; word-break: break-all;">${medal} ${team}</td>
                     <td style="padding:12px 5px; text-align:center; font-weight:bold; color:#81c784;">${stats[team].victorias}</td>
                     <td style="padding:12px 5px; text-align:center; color:#e57373;">${stats[team].derrotas}</td>
+                    <td style="padding:12px 5px; text-align:center; color:#42a5f5;">${stats[team].juegos}</td>
                 </tr>
             `;
         });
