@@ -415,6 +415,12 @@
                        oninput="renderRanking(currentFilter)" autocomplete="off">
             </div>
 
+            <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; font-size: 0.9rem;">
+                <span style="color:#aaa; align-self:center;">Ordenar por:</span>
+                <button class="btn-manual" id="btnSortVic" style="height:auto; padding:5px 10px; font-size:0.9rem; border-color: var(--accent); color: var(--accent);" onclick="setRankingSort('victorias')">🏆 Victorias</button>
+                <button class="btn-manual" id="btnSortWR" style="height:auto; padding:5px 10px; font-size:0.9rem;" onclick="setRankingSort('winrate')">📊 Winrate</button>
+            </div>
+
             <div id="rankingContent" style="overflow-y: auto; flex: 1; min-height: 150px; text-align: left;">
                 </div>
 
@@ -754,6 +760,12 @@
     // --- SISTEMA DE RANKING ---
     let globalRankingData = []; 
     let currentFilter = 'global'; // Guardamos el filtro activo para el buscador
+    let currentSort = 'victorias'; // Puede ser 'victorias' o 'winrate'
+
+    function setRankingSort(sortType) {
+        currentSort = sortType;
+        renderRanking(currentFilter);
+    }
 
     async function loadRanking() {
         document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; padding:20px; color:#aaa;'>Cargando datos...</div>";
@@ -843,25 +855,49 @@
             });
         });
         
+        // 1. Calculamos el Winrate para cada jugador antes de ordenar
+        Object.keys(stats).forEach(team => {
+            const totalPartidas = stats[team].victorias + stats[team].derrotas;
+            // Evitamos divisiones por cero. Winrate = (Victorias / Partidas Totales) * 100
+            stats[team].winrate = totalPartidas > 0 ? (stats[team].victorias / totalPartidas) * 100 : 0;
+            stats[team].totalPartidas = totalPartidas;
+        });
+
+        // 2. Actualizamos los colores de los botones de ordenación
+        document.getElementById('btnSortVic').style.borderColor = currentSort === 'victorias' ? 'var(--accent)' : '#555';
+        document.getElementById('btnSortVic').style.color = currentSort === 'victorias' ? 'var(--accent)' : '#aaa';
+        document.getElementById('btnSortWR').style.borderColor = currentSort === 'winrate' ? 'var(--accent)' : '#555';
+        document.getElementById('btnSortWR').style.color = currentSort === 'winrate' ? 'var(--accent)' : '#aaa';
+
         const searchTerm = document.getElementById('searchTeam').value.toLowerCase();
         
-        // Ordenamos por Victorias > Vacas > Juegos
+        // 3. El nuevo algoritmo de ordenación invencible
         const sortedTeams = Object.keys(stats)
             .filter(team => team.toLowerCase().includes(searchTerm)) 
             .sort((a, b) => {
-                if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
-                if (stats[b].vacas !== stats[a].vacas) return stats[b].vacas - stats[a].vacas;
-                return stats[b].juegos - stats[a].juegos; // Tercer desempate: Juegos
+                if (currentSort === 'victorias') {
+                    // Orden tradicional:
+                    if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias; // 1. Más victorias
+                    if (stats[a].derrotas !== stats[b].derrotas) return stats[a].derrotas - stats[b].derrotas;       // 2. MENOS derrotas (¡Arregla el bug de Campoy y Ruben!)
+                    if (stats[b].vacas !== stats[a].vacas) return stats[b].vacas - stats[a].vacas;                   // 3. Más vacas
+                    return stats[b].juegos - stats[a].juegos;                                                        // 4. Más juegos
+                } else {
+                    // Orden por Winrate:
+                    if (stats[b].winrate !== stats[a].winrate) return stats[b].winrate - stats[a].winrate;           // 1. Mayor % de victoria
+                    if (stats[b].totalPartidas !== stats[a].totalPartidas) return stats[b].totalPartidas - stats[a].totalPartidas; // 2. Más constancia (10V-0D gana a 1V-0D)
+                    return stats[b].victorias - stats[a].victorias;                                                  // 3. Más victorias totales
+                }
             });
         
-        // Construimos la tabla visual con la nueva columna
+        // 4. Construimos la tabla incluyendo la columna de %
         let html = `
-            <table style="width:100%; border-collapse: collapse; font-size: 1.1rem;">
+            <table style="width:100%; border-collapse: collapse; font-size: 1rem;">
                 <tr style="border-bottom: 2px solid #546e7a; color:var(--accent);">
-                    <th style="padding:10px 5px; text-align:left;">Nombre</th>
-                    <th style="padding:10px 5px; text-align:center;">V</th>
-                    <th style="padding:10px 5px; text-align:center;">D</th>
-                    <th style="padding:10px 5px; text-align:center;">J</th>
+                    <th style="padding:10px 2px; text-align:left;">Nombre</th>
+                    <th style="padding:10px 2px; text-align:center;">V</th>
+                    <th style="padding:10px 2px; text-align:center;">D</th>
+                    <th style="padding:10px 2px; text-align:center;">J</th>
+                    <th style="padding:10px 2px; text-align:center;">%</th>
                 </tr>
         `;
         
@@ -873,10 +909,11 @@
             
             html += `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <td style="padding:12px 5px; word-break: break-all;">${medal} ${team}</td>
-                    <td style="padding:12px 5px; text-align:center; font-weight:bold; color:#81c784;">${stats[team].victorias}</td>
-                    <td style="padding:12px 5px; text-align:center; color:#e57373;">${stats[team].derrotas}</td>
-                    <td style="padding:12px 5px; text-align:center; color:#42a5f5;">${stats[team].juegos}</td>
+                    <td style="padding:12px 2px; word-break: break-all;">${medal} ${team}</td>
+                    <td style="padding:12px 2px; text-align:center; font-weight:bold; color:#81c784;">${stats[team].victorias}</td>
+                    <td style="padding:12px 2px; text-align:center; color:#e57373;">${stats[team].derrotas}</td>
+                    <td style="padding:12px 2px; text-align:center; color:#42a5f5;">${stats[team].juegos}</td>
+                    <td style="padding:12px 2px; text-align:center; color:var(--accent);">${stats[team].winrate.toFixed(0)}%</td>
                 </tr>
             `;
         });
