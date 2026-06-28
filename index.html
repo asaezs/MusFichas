@@ -837,7 +837,7 @@
             ganadoresArray.forEach(p => {
                 const entity = String(p).trim();
                 if (!isDefault(entity)) {
-                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0, juegos: 0 };
+                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0, juegos: 0, racha: 0, rachaRota: false };
                     stats[entity].victorias++;
                     stats[entity].vacas += parseInt(vacasGanador) || 0;
                     stats[entity].juegos += parseInt(juegosGanador) || 0; // Sumamos los juegos
@@ -847,13 +847,37 @@
             perdedoresArray.forEach(p => {
                 const entity = String(p).trim();
                 if (!isDefault(entity)) {
-                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0, juegos: 0 };
+                    if (!stats[entity]) stats[entity] = { victorias: 0, derrotas: 0, vacas: 0, juegos: 0, racha: 0, rachaRota: false };
                     stats[entity].derrotas++;
                     stats[entity].vacas += parseInt(vacasPerdedor) || 0;
                     stats[entity].juegos += parseInt(juegosPerdedor) || 0; // Sumamos los juegos
                 }
             });
         });
+
+        for (let i = filteredData.length - 1; i >= 0; i--) {
+            const [fecha, ganador, perdedor] = filteredData[i];
+            if (!ganador) continue;
+
+            let ganadoresArray = currentMode === 'jugadores' ? String(ganador).split(' - ') : [ganador];
+            let perdedoresArray = currentMode === 'jugadores' ? String(perdedor).split(' - ') : [perdedor];
+
+            ganadoresArray.forEach(p => {
+                const entity = String(p).trim();
+                // Si ha ganado y su racha aún no se ha roto, sumamos 1
+                if (!isDefault(entity) && stats[entity] && !stats[entity].rachaRota) {
+                    stats[entity].racha++;
+                }
+            });
+
+            perdedoresArray.forEach(p => {
+                const entity = String(p).trim();
+                // Si encontramos una derrota en el historial, cortamos la racha
+                if (!isDefault(entity) && stats[entity]) {
+                    stats[entity].rachaRota = true;
+                }
+            });
+        }
         
         // 1. Calculamos el Winrate para cada jugador antes de ordenar
         Object.keys(stats).forEach(team => {
@@ -877,15 +901,15 @@
             .sort((a, b) => {
                 if (currentSort === 'victorias') {
                     // Orden tradicional:
-                    if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias; // 1. Más victorias
-                    if (stats[a].derrotas !== stats[b].derrotas) return stats[a].derrotas - stats[b].derrotas;       // 2. MENOS derrotas (¡Arregla el bug de Campoy y Ruben!)
-                    if (stats[b].vacas !== stats[a].vacas) return stats[b].vacas - stats[a].vacas;                   // 3. Más vacas
-                    return stats[b].juegos - stats[a].juegos;                                                        // 4. Más juegos
+                    if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
+                    if (stats[a].derrotas !== stats[b].derrotas) return stats[a].derrotas - stats[b].derrotas;       
+                    if (stats[b].vacas !== stats[a].vacas) return stats[b].vacas - stats[a].vacas;
+                    return stats[b].juegos - stats[a].juegos;
                 } else {
                     // Orden por Winrate:
-                    if (stats[b].winrate !== stats[a].winrate) return stats[b].winrate - stats[a].winrate;           // 1. Mayor % de victoria
-                    if (stats[b].totalPartidas !== stats[a].totalPartidas) return stats[b].totalPartidas - stats[a].totalPartidas; // 2. Más constancia (10V-0D gana a 1V-0D)
-                    return stats[b].victorias - stats[a].victorias;                                                  // 3. Más victorias totales
+                    if (stats[b].winrate !== stats[a].winrate) return stats[b].winrate - stats[a].winrate;
+                    if (stats[b].totalPartidas !== stats[a].totalPartidas) return stats[b].totalPartidas - stats[a].totalPartidas;
+                    return stats[b].victorias - stats[a].victorias;
                 }
             });
         
@@ -907,9 +931,17 @@
                         (index === 2 && searchTerm === '') ? '🥉 ' : 
                         `<span style="opacity:0.5">${index+1}.</span> `;
             
+            let nombreVisual = team;
+            let estiloNombre = "padding:12px 2px; word-break: break-all;";
+            
+            if (stats[team].racha >= 3) {
+                nombreVisual += ` <span style="font-size:0.9rem;">🔥${stats[team].racha}</span>`;
+                estiloNombre += " color: #ff5252; font-weight: bold;";
+            }
+            
             html += `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <td style="padding:12px 2px; word-break: break-all;">${medal} ${team}</td>
+                    <td style="${estiloNombre}">${medal} ${nombreVisual}</td>
                     <td style="padding:12px 2px; text-align:center; font-weight:bold; color:#81c784;">${stats[team].victorias}</td>
                     <td style="padding:12px 2px; text-align:center; color:#e57373;">${stats[team].derrotas}</td>
                     <td style="padding:12px 2px; text-align:center; color:#42a5f5;">${stats[team].juegos}</td>
