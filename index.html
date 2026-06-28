@@ -281,8 +281,8 @@
             <div class="team-info" style="align-items: flex-start;">
                 <div class="team-title" style="color: var(--team-a); cursor: pointer; max-width: 140px; word-wrap: break-word; text-align: center;" onclick="openTeamModal('A')" id="nameA">XYM</div>
                 <div class="sub-scores">
-                    <div class="sub-badge" style="border: 1px solid var(--team-a);">🏆 <span id="vacasA">0</span></div>
-                    <div class="sub-badge" style="border: 1px solid var(--team-a);">🎮 <span id="gamesA">0</span></div>
+                    <div class="sub-badge" style="border: 1px solid var(--team-a); cursor: pointer;" onclick="editScore('vacas', 'A')">🏆 <span id="vacasA">0</span></div>
+                    <div class="sub-badge" style="border: 1px solid var(--team-a); cursor: pointer;" onclick="editScore('games', 'A')">🎮 <span id="gamesA">0</span></div>
                 </div>
                 <div class="tokens-area" id="tokensA" style="justify-content: flex-start;"></div>
             </div>
@@ -298,8 +298,8 @@
             <div class="team-info" style="align-items: flex-end;">
                 <div class="team-title" style="color: var(--team-b); cursor: pointer; max-width: 140px; word-wrap: break-word; text-align: center;" onclick="openTeamModal('B')" id="nameB">MAHO</div>
                 <div class="sub-scores">
-                    <div class="sub-badge" style="border: 1px solid var(--team-b);">🎮 <span id="gamesB">0</span></div>
-                    <div class="sub-badge" style="border: 1px solid var(--team-b);">🏆 <span id="vacasB">0</span></div>
+                    <div class="sub-badge" style="border: 1px solid var(--team-b); cursor: pointer;" onclick="editScore('games', 'B')">🎮 <span id="gamesB">0</span></div>
+                    <div class="sub-badge" style="border: 1px solid var(--team-b); cursor: pointer;" onclick="editScore('vacas', 'B')">🏆 <span id="vacasB">0</span></div>
                 </div>
                 <div class="tokens-area" id="tokensB" style="justify-content: flex-end;"></div>
             </div>
@@ -573,6 +573,38 @@
 
         // Verificar victoria de piedras inmediatamente
         checkPointsWin();
+    }
+
+    function editScore(type, team) {
+        const isVaca = (type === 'vacas');
+        const typeName = isVaca ? 'Vacas' : 'Juegos';
+        const teamName = document.getElementById(`name${team}`).innerText;
+        
+        // Leemos el valor actual para sugerirlo en la ventana
+        const currentVal = isVaca ? state.vacas[team] : state.games[team];
+        
+        // Abrimos el popup nativo del sistema
+        const newVal = prompt(`Editar ${typeName} de ${teamName}:`, currentVal);
+        
+        // Si no han cancelado y han escrito un número válido...
+        if (newVal !== null && newVal.trim() !== "" && !isNaN(newVal)) {
+            const numVal = parseInt(newVal);
+            
+            // Actualizamos el estado interno
+            if (isVaca) {
+                state.vacas[team] = numVal;
+            } else {
+                state.games[team] = numVal;
+            }
+            
+            // Refrescamos la pantalla
+            updateUI();
+            
+            // Pequeño seguro: Si al editar los juegos le ponen los necesarios para ganar, disparamos la victoria
+            if (!isVaca && state.games[team] >= state.config.gamesToWinVaca) {
+                triggerWinVaca(team, teamName);
+            }
+        }
     }
 
     function drawTokens(team, score) {
