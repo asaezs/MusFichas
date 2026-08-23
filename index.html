@@ -270,6 +270,56 @@
         .victory-text { font-size: 2rem; margin-bottom: 20px; font-weight: bold; color: var(--accent); }
         .sub-victory-text { font-size: 1.2rem; color: white; margin-bottom: 30px; }
 
+        /* LEOPARDO*/
+        body.theme-alba {
+            --accent: #ff9800; 
+            --team-a: #ffcc80;
+            --team-b: #ffb74d;
+            
+            /* Fondo base con el SVG de rosetas de leopardo realista */
+            background-color: #cfa66d;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M20 20 Q 30 15 35 25 Q 30 35 20 30 Q 15 25 20 20' fill='%23b8860b'/%3E%3Cpath d='M17 17 Q 27 10 37 20' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M37 28 Q 25 38 17 28' fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M70 70 Q 85 65 85 80 Q 75 90 65 80 Q 60 75 70 70' fill='%23b8860b'/%3E%3Cpath d='M66 68 Q 78 60 88 74' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M87 83 Q 75 95 62 82' fill='none' stroke='%23000' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M80 20 Q 90 25 85 35 Q 75 35 75 25 Q 75 20 80 20' fill='%23b8860b'/%3E%3Cpath d='M76 18 Q 88 18 92 28' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M87 38 Q 75 40 71 30' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M25 75 Q 35 70 40 85 Q 25 90 20 80 Q 20 75 25 75' fill='%23b8860b'/%3E%3Cpath d='M21 72 Q 35 65 44 80' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M38 90 Q 25 95 18 83' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='50' r='5' fill='%23000'/%3E%3Cpath d='M10 50 Q 15 45 20 52 Q 15 60 8 55 Z' fill='%23000'/%3E%3Cpath d='M90 55 Q 95 50 100 55 Q 95 65 88 60 Z' fill='%23000'/%3E%3Ccircle cx='55' cy='10' r='3.5' fill='%23000'/%3E%3Ccircle cx='45' cy='90' r='4' fill='%23000'/%3E%3C/svg%3E");
+            transition: background 0.5s ease;
+        }
+
+        /* Contraste - Un poco menos oscuro que el tuyo, añadiendo desenfoque */
+        body.theme-alba .header,
+        body.theme-alba .betting-controls,
+        body.theme-alba .phases-container,
+        body.theme-alba .modal-content {
+            background: rgba(10, 5, 0, 0.35); 
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.2);
+            border-color: #ff9800;
+            backdrop-filter: blur(2.5px); /* Desenfoque sutil del fondo para potenciar la lectura */
+            -webkit-backdrop-filter: blur(2.5px); /* Soporte para iOS */
+        }
+
+        body.theme-alba .phase-row.active {
+            background: rgba(255, 152, 0, 0.15);
+            border-color: #ff9800;
+        }
+
+        /* SOLUCIÓN: Botones laterales legibles */
+        body.theme-alba .btn-manual {
+            background: rgba(20, 10, 0, 0.65); /* Fondo semitransparente oscuro */
+            border-color: rgba(255, 152, 0, 0.4);
+            text-shadow: 1px 1px 3px black; /* Sombra en el texto para que salte a la vista */
+        }
+        
+        body.theme-alba .btn-manual:active {
+            background: rgba(255, 152, 0, 0.3);
+        }
+        
+        /* Ajuste oscuro para los botones inferiores */
+        body.theme-alba .bet-btn {
+            background: rgba(20, 10, 0, 0.4);
+        }
+        
+        body.theme-alba .btn-borrar {
+            background: #4a1c1c; 
+            color: #ff8a80;
+        }
+
     </style>
 </head>
 <body>
@@ -415,10 +465,12 @@
                        oninput="renderRanking(currentFilter)" autocomplete="off">
             </div>
 
-            <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; font-size: 0.9rem;">
-                <span style="color:#aaa; align-self:center;">Ordenar por:</span>
-                <button class="btn-manual" id="btnSortVic" style="height:auto; padding:5px 10px; font-size:0.9rem; border-color: var(--accent); color: var(--accent);" onclick="setRankingSort('victorias')">🏆 Victorias</button>
-                <button class="btn-manual" id="btnSortWR" style="height:auto; padding:5px 10px; font-size:0.9rem;" onclick="setRankingSort('winrate')">📊 Winrate</button>
+            <!-- Partidas mínimas -->
+            <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:15px; font-size: 1rem;">
+                <span style="color:#aaa;">Partidas mínimas:</span>
+                <input type="number" id="minGamesInput" value="7" min="0" 
+                       style="width: 60px; padding: 5px; border-radius: 5px; border: none; text-align: center; font-size: 1.1rem; background: rgba(255,255,255,0.1); color: white; outline: none;" 
+                       oninput="updateMinGames()">
             </div>
 
             <div id="rankingContent" style="overflow-y: auto; flex: 1; min-height: 150px; text-align: left;">
@@ -465,6 +517,18 @@
     };
 
     let pendingAction = null; // Para manejar el flujo de modales
+
+    // Leopardo detect
+    function checkAlbaTheme() {
+        const nameA = document.getElementById('nameA').innerText.toUpperCase();
+        const nameB = document.getElementById('nameB').innerText.toUpperCase();
+        
+        if (nameA.includes('ALBA') || nameB.includes('ALBA')) {
+            document.body.classList.add('theme-alba');
+        } else {
+            document.body.classList.remove('theme-alba');
+        }
+    }
 
     // --- GESTIÓN DE EQUIPOS Y JUGADORES ---
     let editingTeam = 'A';
@@ -531,6 +595,8 @@
 
         document.getElementById(`name${editingTeam}`).innerText = finalName;
         closeTeamModal();
+
+        checkAlbaTheme();
     }
 
     function setRankingMode(mode) {
@@ -789,13 +855,14 @@
         });
     }
 
-    // --- SISTEMA DE RANKING ---
+    // RANKING
     let globalRankingData = []; 
-    let currentFilter = 'global'; // Guardamos el filtro activo para el buscador
-    let currentSort = 'victorias'; // Puede ser 'victorias' o 'winrate'
+    let currentFilter = 'global';
+    let minGamesFilter = 7;
 
-    function setRankingSort(sortType) {
-        currentSort = sortType;
+    function updateMinGames() {
+        const inputVal = document.getElementById('minGamesInput').value;
+        minGamesFilter = inputVal === "" ? 0 : parseInt(inputVal);
         renderRanking(currentFilter);
     }
 
@@ -809,7 +876,7 @@
             const data = await response.json();
             
             globalRankingData = data; 
-            renderRanking('global'); // Por defecto cargamos el histórico
+            renderRanking('global');
         } catch (error) {
             console.error(error);
             document.getElementById('rankingContent').innerHTML = "<div style='text-align:center; color:#ef5350;'>Error al cargar los datos.</div>";
@@ -817,7 +884,7 @@
     }
 
     function renderRanking(filter) {
-        currentFilter = filter; // Actualizamos el estado
+        currentFilter = filter; 
         
         // Estilos de los botones
         document.getElementById('btnFilterGlobal').style.borderColor = filter === 'global' ? 'var(--accent)' : '#555';
@@ -927,22 +994,21 @@
 
         const searchTerm = document.getElementById('searchTeam').value.toLowerCase();
         
-        // 3. El nuevo algoritmo de ordenación invencible
+        // 2. Filtramos por el mínimo de partidas y ordenamos por Winrate
         const sortedTeams = Object.keys(stats)
-            .filter(team => team.toLowerCase().includes(searchTerm)) 
+            .filter(team => {
+                // Comprobamos si coincide con la barra de búsqueda
+                const matchesSearch = team.toLowerCase().includes(searchTerm);
+                // Comprobamos si tiene las partidas mínimas exigidas en el input
+                const meetsMinGames = stats[team].totalPartidas >= minGamesFilter;
+                
+                return matchesSearch && meetsMinGames;
+            })
             .sort((a, b) => {
-                if (currentSort === 'victorias') {
-                    // Orden tradicional:
-                    if (stats[b].victorias !== stats[a].victorias) return stats[b].victorias - stats[a].victorias;
-                    if (stats[a].derrotas !== stats[b].derrotas) return stats[a].derrotas - stats[b].derrotas;       
-                    if (stats[b].vacas !== stats[a].vacas) return stats[b].vacas - stats[a].vacas;
-                    return stats[b].juegos - stats[a].juegos;
-                } else {
-                    // Orden por Winrate:
-                    if (stats[b].winrate !== stats[a].winrate) return stats[b].winrate - stats[a].winrate;
-                    if (stats[b].totalPartidas !== stats[a].totalPartidas) return stats[b].totalPartidas - stats[a].totalPartidas;
-                    return stats[b].victorias - stats[a].victorias;
-                }
+                // WR
+                if (stats[b].winrate !== stats[a].winrate) return stats[b].winrate - stats[a].winrate; // 1. Mayor % de victoria
+                if (stats[b].totalPartidas !== stats[a].totalPartidas) return stats[b].totalPartidas - stats[a].totalPartidas; // 2. Más partidas (constancia)
+                return stats[b].victorias - stats[a].victorias; // 3. Más victorias totales
             });
         
         // 4. Construimos la tabla incluyendo la columna de %
@@ -996,6 +1062,7 @@
 
     // INIT
     updateUI();
+    checkAlbaTheme();
 
     // Descarga silenciosa para tener los nombres listos en el autocompletado
     fetch(SCRIPT_URL)
