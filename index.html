@@ -412,94 +412,77 @@
             transform: translateY(-2px) scale(1.08) !important;
         }
 
+        /* =========================================================
+        AJUSTE HEADER PARA MÓVIL VERTICAL
+        ========================================================= */
         @media (max-width: 600px) and (orientation: portrait) {
+
             .header {
-                height: 15vh;
-                min-height: 92px;
-                padding: 7px 9px 34px;
-                align-items: flex-start;
-                gap: 4px;
+                position: relative;
+                padding: 6px 8px 42px;
+                min-height: 105px;
+                height: 18dvh;
             }
 
-            .global-score-box {
-                width: calc(50% - 31px);
-                min-width: 0;
+            /* Equipos más compactos */
+            .header > .global-score-box {
+                width: 43%;
                 gap: 6px;
             }
 
-            .score-num {
+            .header > .global-score-box .score-num {
                 font-size: 2rem;
-                min-width: 34px;
+                min-width: 38px;
             }
 
-            .team-info {
-                min-width: 0;
+            .header > .global-score-box .team-title {
+                font-size: 0.78rem !important;
+                max-width: 82px !important;
+                margin-bottom: 2px;
             }
 
-            .team-title {
-                font-size: .83rem;
-                margin-bottom: 3px;
-                max-width: 86px !important;
-                line-height: 1.05;
-            }
-
-            .sub-scores {
+            .header > .global-score-box .sub-scores {
                 gap: 4px;
-                font-size: .68rem;
+                font-size: 0.68rem;
             }
 
-            .sub-badge {
+            .header > .global-score-box .sub-badge {
                 padding: 2px 4px;
                 gap: 2px;
             }
 
-            .header-tools {
+            /* Bloque Ranking / Mesa / Ajustes */
+            .header > div:nth-child(2) {
                 position: absolute;
                 left: 50%;
-                bottom: 3px;
+                bottom: 5px;
                 transform: translateX(-50%);
-                width: 92px;
-                min-width: 92px;
-                gap: 0;
+
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+
+                gap: 4px !important;
+                font-size: 1.05rem !important;
+                margin-top: 0 !important;
+                z-index: 10;
             }
 
-            .header-tools-top {
-                gap: 2px;
+            .header > div:nth-child(2) > div,
+            .header > div:nth-child(2) > button {
+                width: 34px;
+                height: 34px;
+                min-width: 34px;
+                min-height: 34px;
+
+                padding: 4px !important;
+
+                display: grid;
+                place-items: center;
             }
 
-            .header-ranking-control,
-            .header-settings-control,
-            .dynamic-mode-toggle {
-                width: 32px;
-                min-width: 32px;
-                height: 31px;
-                min-height: 31px;
-                padding: 0;
-                font-size: 1.05rem;
-            }
-
-            .header-settings-control {
-                width: 38px;
-                height: 23px;
-                min-height: 23px;
+            .header > div:nth-child(2) .dynamic-mode-toggle {
                 font-size: 1rem;
-            }
-
-            .dynamic-token-field {
-                grid-template-columns: repeat(auto-fill, minmax(27px, 1fr));
-                grid-auto-rows: 31px;
-                gap: 3px;
-                padding: 2px 3px;
-            }
-
-            .dynamic-token-field .dynamic-token.big {
-                width: 29px;
-                height: 29px;
-            }
-
-            .dynamic-token-field .dynamic-token.small {
-                width: 22px;
-                height: 22px;
             }
         }
 
