@@ -331,6 +331,473 @@
             color: #ff8a80;
         }
 
+
+
+        /* =========================================================
+           MODO MESA DINÁMICA — CAPA AÑADIDA
+           ========================================================= */
+        .dynamic-mode {
+            display: none;
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            z-index: 1;
+            padding: 7px;
+            overflow: hidden;
+            background: rgba(6, 32, 20, 0.18);
+        }
+
+        body.dynamic-mode-active .main-board,
+        body.dynamic-mode-active .betting-controls {
+            display: none !important;
+        }
+
+        body.dynamic-mode-active .dynamic-mode {
+            display: grid;
+        }
+
+        body.dynamic-mode-active .header {
+            height: 12dvh;
+            min-height: 78px;
+            padding-top: 7px;
+            padding-bottom: 7px;
+            backdrop-filter: blur(1.5px);
+            -webkit-backdrop-filter: blur(1.5px);
+        }
+
+        body.dynamic-mode-active .tokens-area {
+            display: none;
+        }
+
+        .dynamic-table {
+            position: relative;
+            min-height: 0;
+            height: 100%;
+            display: grid;
+            grid-template-rows: minmax(82px, 18%) minmax(0, 64%) minmax(82px, 18%);
+            gap: 7px;
+            padding: 7px;
+            border: 2px solid rgba(231, 192, 111, 0.42);
+            border-radius: 18px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(72, 143, 92, 0.28), rgba(12, 63, 38, 0.60) 70%),
+                rgba(16, 72, 40, 0.54);
+            box-shadow:
+                0 12px 28px rgba(0,0,0,0.28),
+                inset 0 0 0 1px rgba(255,255,255,0.06),
+                inset 0 0 45px rgba(0,0,0,0.22);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            touch-action: none;
+        }
+
+        .dynamic-table::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: inherit;
+            background:
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 4px),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 7px);
+            opacity: .5;
+        }
+
+        .dynamic-zone {
+            position: relative;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.13);
+            background: linear-gradient(180deg, rgba(10, 15, 12, 0.32), rgba(0,0,0,0.18));
+            border-radius: 14px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.17);
+            backdrop-filter: blur(1.5px);
+            -webkit-backdrop-filter: blur(1.5px);
+            z-index: 2;
+            touch-action: none;
+        }
+
+        .dynamic-zone.team-a-zone { border-color: color-mix(in srgb, var(--team-a) 45%, transparent); }
+        .dynamic-zone.team-b-zone { border-color: color-mix(in srgb, var(--team-b) 45%, transparent); }
+
+        .dynamic-zone-head {
+            flex: 0 0 auto;
+            width: 104px;
+            min-width: 104px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .dynamic-team-name {
+            max-width: 104px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.76rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            opacity: .9;
+        }
+
+        .dynamic-team-score {
+            font-size: clamp(1.8rem, 7vw, 2.55rem);
+            font-weight: 900;
+            line-height: .92;
+            text-shadow: 0 2px 7px rgba(0,0,0,.55);
+        }
+
+        .dynamic-team-caption {
+            font-size: .64rem;
+            opacity: .6;
+            white-space: nowrap;
+        }
+
+        .dynamic-zone-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 104px;
+            min-width: 104px;
+            z-index: 5;
+        }
+
+        .dynamic-zone-tool,
+        .dynamic-mode-toggle,
+        .dynamic-action {
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.30);
+            color: #fff;
+            font: inherit;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .dynamic-zone-tool {
+            min-height: 34px;
+            padding: 6px 8px;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .03em;
+        }
+
+        .dynamic-zone-tool.ordago-a {
+            color: var(--team-a);
+            border-color: color-mix(in srgb, var(--team-a) 50%, transparent);
+        }
+
+        .dynamic-zone-tool.ordago-b {
+            color: var(--team-b);
+            border-color: color-mix(in srgb, var(--team-b) 50%, transparent);
+        }
+
+        .dynamic-zone-tool:active,
+        .dynamic-action:active,
+        .dynamic-mode-toggle:active {
+            transform: scale(.97);
+        }
+
+        .dynamic-token-field {
+            min-width: 0;
+            min-height: 62px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            align-content: center;
+            justify-content: flex-start;
+            gap: 6px;
+            flex-wrap: wrap;
+            overflow: hidden;
+            position: relative;
+            z-index: 4;
+            padding: 3px 2px;
+        }
+
+        .team-b-zone .dynamic-token-field { justify-content: flex-end; }
+
+        .dynamic-center {
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+            border-radius: 15px;
+            border: 1px dashed rgba(255,255,255,0.16);
+            background: rgba(4, 34, 22, 0.20);
+            box-shadow: inset 0 0 28px rgba(0,0,0,0.18);
+            z-index: 3;
+            touch-action: none;
+        }
+
+        .dynamic-center::before {
+            content: 'MESA';
+            position: absolute;
+            left: 50%;
+            top: 8px;
+            transform: translateX(-50%);
+            font-size: .63rem;
+            font-weight: 900;
+            letter-spacing: .2em;
+            color: rgba(255,255,255,.28);
+            pointer-events: none;
+        }
+
+        .dynamic-hint {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: min(83%, 340px);
+            text-align: center;
+            font-size: .78rem;
+            line-height: 1.35;
+            color: rgba(255,255,255,.50);
+            pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+        }
+
+        .dynamic-center.has-tokens .dynamic-hint {
+            opacity: 0;
+            transform: translate(-50%, -42%);
+        }
+
+        .dynamic-actions {
+            position: absolute;
+            left: 50%;
+            bottom: 10px;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            width: min(96%, 420px);
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .dynamic-action {
+            pointer-events: auto;
+            min-height: 37px;
+            padding: 7px 10px;
+            font-size: .72rem;
+            font-weight: 800;
+            background: rgba(6, 24, 16, 0.78);
+            box-shadow: 0 4px 10px rgba(0,0,0,.22);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .dynamic-action.add {
+            color: #fff;
+            border-color: rgba(255,255,255,.26);
+        }
+
+        .dynamic-action.convert {
+            color: #ffe082;
+            border-color: rgba(255,224,130,.48);
+            animation: dynamicConvertPulse 1.2s ease-in-out infinite;
+        }
+
+        .dynamic-token {
+            position: absolute;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            padding: 0;
+            border: 0;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            box-shadow:
+                0 4px 7px rgba(0,0,0,.28),
+                inset 0 1px 1px rgba(255,255,255,.38),
+                inset 0 -2px 3px rgba(0,0,0,.24);
+            transition: box-shadow .12s ease, transform .12s ease, opacity .18s ease;
+            z-index: 10;
+        }
+
+        .dynamic-token.small {
+            width: 28px;
+            height: 28px;
+            background:
+                radial-gradient(circle at 30% 25%, #fff 0 12%, #eee 18%, #d0d0d0 60%, #aaa 100%);
+            border: 1px solid rgba(60,60,60,.7);
+        }
+
+        .dynamic-token.big {
+            width: 42px;
+            height: 42px;
+            background:
+                radial-gradient(circle at 28% 24%, #fff3b0 0 10%, #f7d85c 24%, #d0a11b 72%, #8e6707 100%);
+            border: 2px solid #9f7812;
+        }
+
+        .dynamic-token.big::after {
+            content: '5';
+            color: rgba(95, 69, 6, .9);
+            font-size: .7rem;
+            font-weight: 900;
+            text-shadow: 0 1px rgba(255,255,255,.3);
+        }
+
+        .dynamic-token.selected {
+            box-shadow:
+                0 0 0 3px rgba(255,235,59,.52),
+                0 7px 14px rgba(0,0,0,.36),
+                inset 0 1px 1px rgba(255,255,255,.4);
+            transform: translateY(-3px) scale(1.08);
+        }
+
+        .dynamic-token.dragging {
+            cursor: grabbing;
+            transition: none;
+            z-index: 60;
+            transform: scale(1.12);
+            filter: saturate(1.1);
+        }
+
+        .dynamic-token.merging {
+            animation: dynamicMerge .32s ease forwards;
+        }
+
+        .dynamic-zone.drop-ready,
+        .dynamic-center.drop-ready {
+            box-shadow: inset 0 0 0 2px rgba(255,235,59,.34), inset 0 0 26px rgba(255,235,59,.10);
+        }
+
+        .dynamic-fx-token {
+            position: fixed;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 3px 8px rgba(0,0,0,.35);
+            animation: dynamicOrdagoFly .55s cubic-bezier(.22,.74,.24,1) forwards;
+        }
+
+        .dynamic-fx-token.a { background: #dbefff; border: 1px solid #90caf9; }
+        .dynamic-fx-token.b { background: #ffe8a6; border: 1px solid #e5b932; }
+
+        .dynamic-toast {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translate(-50%, -8px);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 40;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(0,0,0,.68);
+            border: 1px solid rgba(255,255,255,.16);
+            font-size: .7rem;
+            font-weight: 800;
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .dynamic-toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .dynamic-mode-toggle {
+            min-width: 42px;
+            min-height: 42px;
+            padding: 8px;
+            font-size: 1.18rem;
+            display: grid;
+            place-items: center;
+            background: rgba(0,0,0,.24);
+            border-color: rgba(255,255,255,.16);
+        }
+
+        body.theme-alba .dynamic-table {
+            background:
+                radial-gradient(circle at 50% 50%, rgba(116, 73, 23, 0.18), rgba(20, 9, 2, 0.58) 75%),
+                rgba(20, 10, 2, 0.40);
+            border-color: rgba(255,152,0,.42);
+        }
+
+        body.theme-alba .dynamic-zone,
+        body.theme-alba .dynamic-center {
+            background: rgba(20, 9, 2, 0.30);
+            border-color: rgba(255,152,0,.22);
+        }
+
+        body.theme-alba .dynamic-action,
+        body.theme-alba .dynamic-zone-tool,
+        body.theme-alba .dynamic-mode-toggle {
+            background: rgba(20,10,0,.52);
+            border-color: rgba(255,152,0,.27);
+        }
+
+        @keyframes dynamicConvertPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+            50% { transform: scale(1.035); box-shadow: 0 0 0 5px rgba(255,193,7,.09); }
+        }
+
+        @keyframes dynamicMerge {
+            0% { opacity: 1; transform: scale(1); }
+            60% { opacity: .65; transform: scale(.56); }
+            100% { opacity: 0; transform: scale(.1); }
+        }
+
+        @keyframes dynamicOrdagoFly {
+            0% { opacity: 0; transform: translate(0,0) scale(.6) rotate(0deg); }
+            15% { opacity: 1; }
+            100% { opacity: 0; transform: translate(var(--fly-x), var(--fly-y)) scale(1.15) rotate(220deg); }
+        }
+
+        @media (max-width: 420px) {
+            .dynamic-table {
+                grid-template-rows: 78px minmax(0, 1fr) 78px;
+                padding: 5px;
+                gap: 5px;
+                border-radius: 15px;
+            }
+            .dynamic-zone { padding: 6px 7px; border-radius: 11px; }
+            .dynamic-zone-head,
+            .dynamic-zone-tools { width: 88px; min-width: 88px; }
+            .dynamic-team-name { max-width: 88px; }
+            .dynamic-team-caption { font-size: .58rem; }
+            .dynamic-zone-tool { min-height: 30px; padding: 4px 6px; font-size: .64rem; }
+            .dynamic-action { min-height: 34px; padding: 6px 8px; font-size: .65rem; }
+            .dynamic-token.small { width: 25px; height: 25px; }
+            .dynamic-token.big { width: 38px; height: 38px; }
+        }
+
+        @media (orientation: landscape) and (max-height: 620px) {
+            body.dynamic-mode-active .header { height: 15dvh; min-height: 70px; }
+            .dynamic-table {
+                grid-template-rows: 1fr;
+                grid-template-columns: minmax(92px, 18%) minmax(0, 64%) minmax(92px, 18%);
+                gap: 6px;
+            }
+            .dynamic-zone {
+                min-width: 0;
+                flex-direction: column;
+                align-items: stretch;
+                padding: 8px 6px;
+            }
+            .dynamic-zone-head,
+            .dynamic-zone-tools { width: 100%; min-width: 0; }
+            .dynamic-token-field,
+            .team-b-zone .dynamic-token-field { justify-content: center; align-items: center; }
+            .dynamic-team-name { max-width: 100%; }
+            .dynamic-zone-tools { flex-direction: row; }
+            .dynamic-zone-tool { flex: 1; }
+        }
+
     </style>
 </head>
 <body>
@@ -508,9 +975,10 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 15px; font-size: 1.5rem; margin-top: 5px;">
-            <div style="opacity: 0.7; cursor: pointer;" onclick="loadRanking()">🏆</div>
-            <div style="opacity: 0.7; cursor: pointer;" onclick="openSettings()">⚙️</div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.35rem; margin-top: 2px;">
+            <div style="opacity: 0.7; cursor: pointer; padding: 7px;" onclick="loadRanking()" aria-label="Clasificación">🏆</div>
+            <button class="dynamic-mode-toggle" id="dynamicModeToggle" onclick="toggleDynamicMode()" aria-label="Cambiar a mesa dinámica" title="Mesa dinámica">🪙</button>
+            <div style="opacity: 0.7; cursor: pointer; padding: 7px;" onclick="openSettings()" aria-label="Ajustes">⚙️</div>
         </div>
 
         <div class="global-score-box" style="flex-direction: row-reverse; text-align: right;">
@@ -525,6 +993,50 @@
             </div>
         </div>
     </header>
+
+
+
+    <!-- MESA DINÁMICA -->
+    <section class="dynamic-mode" id="dynamicMode" aria-label="Mesa dinámica de amarracos">
+        <div class="dynamic-table" id="dynamicTable">
+
+            <div class="dynamic-zone team-a-zone" id="dynamicZoneA" data-team="A">
+                <div class="dynamic-zone-head">
+                    <div class="dynamic-team-name" id="dynamicNameA">XYM</div>
+                    <div class="dynamic-team-score" id="dynamicScoreA" style="color: var(--team-a);">0</div>
+                    <div class="dynamic-team-caption">arrastra aquí para anotar</div>
+                </div>
+                <div class="dynamic-token-field" id="dynamicTokensA"></div>
+                <div class="dynamic-zone-tools">
+                    <button class="dynamic-zone-tool ordago-a" onclick="dynamicOrdago('A')">⚡ ÓRDAGO</button>
+                </div>
+            </div>
+
+            <div class="dynamic-center" id="dynamicCenter" aria-label="Zona central de la mesa">
+                <div class="dynamic-hint" id="dynamicHint">
+                    Arrastra las fichas por la mesa como si fueran amarracos reales.<br>
+                    Suéltalas sobre el campo de un equipo para anotarlas.
+                </div>
+                <div class="dynamic-toast" id="dynamicToast"></div>
+                <div class="dynamic-actions">
+                    <button class="dynamic-action add" id="dynamicAddBtn" onclick="dynamicAddSmallToken()">＋ Ficha</button>
+                    <button class="dynamic-action convert" id="dynamicConvertBtn" onclick="dynamicConvertFive()" style="display:none;">5 pequeñas → 1 grande</button>
+                </div>
+            </div>
+
+            <div class="dynamic-zone team-b-zone" id="dynamicZoneB" data-team="B">
+                <div class="dynamic-zone-head">
+                    <div class="dynamic-team-name" id="dynamicNameB">MAHO</div>
+                    <div class="dynamic-team-score" id="dynamicScoreB" style="color: var(--team-b);">0</div>
+                    <div class="dynamic-team-caption">arrastra aquí para anotar</div>
+                </div>
+                <div class="dynamic-token-field" id="dynamicTokensB"></div>
+                <div class="dynamic-zone-tools">
+                    <button class="dynamic-zone-tool ordago-b" onclick="dynamicOrdago('B')">⚡ ÓRDAGO</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <div class="main-board">
         <div class="side-panel">
@@ -1078,7 +1590,7 @@
             // Refrescamos la pantalla
             updateUI();
             
-            // Pequeño seguro: Si al editar los juegos le ponen los necesarios para ganar, disparamos la victoria
+            // Si al editar los juegos le ponen los necesarios para ganar, disparamos la victoria
             if (!isVaca && state.games[team] >= state.config.gamesToWinVaca) {
                 triggerWinVaca(team, teamName);
             }
@@ -1148,7 +1660,7 @@
     }
 
     function triggerWinVaca(team, name) {
-        // MAGIA AQUÍ: Calculamos los juegos exactos justo antes de resetearlos.
+        // Calculamos los juegos exactos justo antes de resetearlos.
         // Fórmula: Juegos actuales en el marcador + (Vacas que ya tenían * Juegos por vaca)
         const juegosA_totales = state.games.A + (state.vacas.A * state.config.gamesToWinVaca);
         const juegosB_totales = state.games.B + (state.vacas.B * state.config.gamesToWinVaca);
@@ -1563,7 +2075,7 @@
 
             if (s.rachaDerrotas >= 3) {
                 nombreVisual += ` <span style="font-size:0.9rem; color:#42a5f5;">😭${s.rachaDerrotas}</span>`;
-                // No pisamos el dorado del easter egg si ALBA está en racha de victorias y derrotas no aplica.
+                // easter egg si ALBA está en racha de victorias y derrotas no aplica.
                 if (s.racha < 3 || !s.esAlba) estiloNombre += " color: #42a5f5; font-weight: bold;";
             }
 
@@ -1592,6 +2104,461 @@
         closeRankingBtn.addEventListener('click', closeRanking);
     }
 
+    // MODO MESA DINÁMICA
+    let dynamicSelectedToken = null;
+    let dynamicDrag = null;
+    let dynamicToastTimer = null;
+
+    function isDynamicMode() {
+        return document.body.classList.contains('dynamic-mode-active');
+    }
+
+    function toggleDynamicMode() {
+        const entering = !isDynamicMode();
+        document.body.classList.toggle('dynamic-mode-active', entering);
+        const btn = document.getElementById('dynamicModeToggle');
+        if (btn) {
+            btn.innerText = entering ? '📋' : '🪙';
+            btn.title = entering ? 'Volver al modo clásico' : 'Abrir mesa dinámica';
+            btn.setAttribute('aria-label', entering ? 'Volver al modo clásico' : 'Abrir mesa dinámica');
+        }
+        if (entering) {
+            dynamicRefreshBoard();
+            dynamicShowToast('Mueve las fichas con el dedo');
+        } else {
+            dynamicClearSelection();
+        }
+    }
+
+    function dynamicShowToast(message) {
+        const el = document.getElementById('dynamicToast');
+        if (!el) return;
+        el.textContent = message;
+        el.classList.add('show');
+        clearTimeout(dynamicToastTimer);
+        dynamicToastTimer = setTimeout(() => el.classList.remove('show'), 1350);
+    }
+
+    function dynamicClearSelection() {
+        document.querySelectorAll('#dynamicTable .dynamic-token.selected').forEach(el => el.classList.remove('selected'));
+        dynamicSelectedToken = null;
+    }
+
+    function dynamicRefreshBoard() {
+        const center = document.getElementById('dynamicCenter');
+        if (!center) return;
+
+        ['A', 'B'].forEach(team => {
+            const name = document.getElementById(`name${team}`)?.innerText || team;
+            const score = Number(state.scores?.[team] || 0);
+            const nameEl = document.getElementById(`dynamicName${team}`);
+            const scoreEl = document.getElementById(`dynamicScore${team}`);
+            const field = document.getElementById(`dynamicTokens${team}`);
+            if (nameEl) nameEl.innerText = name;
+            if (scoreEl) scoreEl.innerText = score;
+            if (field) dynamicRenderTeamTokens(team, score, field);
+        });
+
+        const looseSmall = center.querySelectorAll('.dynamic-token[data-zone="table"][data-value="1"]').length;
+        const convertBtn = document.getElementById('dynamicConvertBtn');
+        if (convertBtn) convertBtn.style.display = looseSmall >= 5 ? 'block' : 'none';
+        center.classList.toggle('has-tokens', center.querySelector('.dynamic-token[data-zone="table"]') !== null);
+    }
+
+    function dynamicRenderTeamTokens(team, score, field) {
+        const previousSelectedKey = dynamicSelectedToken?.dataset?.key || null;
+        field.innerHTML = '';
+
+        let remaining = Math.max(0, Math.floor(Number(score) || 0));
+        const bigs = Math.floor(remaining / 5);
+        const smalls = remaining % 5;
+
+        for (let i = 0; i < bigs; i++) {
+            field.appendChild(dynamicCreateTeamToken(team, 5, `${team}-5-${i}`));
+        }
+        for (let i = 0; i < smalls; i++) {
+            field.appendChild(dynamicCreateTeamToken(team, 1, `${team}-1-${i}`));
+        }
+
+        if (previousSelectedKey) {
+            const restored = field.querySelector(`[data-key="${CSS.escape(previousSelectedKey)}"]`);
+            if (restored) {
+                restored.classList.add('selected');
+                dynamicSelectedToken = restored;
+            }
+        }
+    }
+
+    function dynamicCreateTeamToken(team, value, key) {
+        const token = document.createElement('button');
+        token.type = 'button';
+        token.className = `dynamic-token ${value === 5 ? 'big' : 'small'}`;
+        token.dataset.zone = team;
+        token.dataset.value = String(value);
+        token.dataset.key = key;
+        token.setAttribute('aria-label', value === 5 ? 'Amarraco de cinco' : 'Amarraco de uno');
+        token.addEventListener('pointerdown', dynamicTokenPointerDown);
+        token.addEventListener('click', dynamicTokenClick);
+        return token;
+    }
+
+    function dynamicSpawnToken(value = 1, x = null, y = null, selected = false) {
+        const center = document.getElementById('dynamicCenter');
+        if (!center) return null;
+
+        const token = document.createElement('button');
+        token.type = 'button';
+        token.className = `dynamic-token ${value === 5 ? 'big' : 'small'}`;
+        token.dataset.zone = 'table';
+        token.dataset.value = String(value);
+        token.dataset.key = `table-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        token.setAttribute('aria-label', value === 5 ? 'Amarraco grande' : 'Amarraco pequeño');
+
+        const rect = center.getBoundingClientRect();
+        const safeX = Math.max(20, Math.min(rect.width - 20, x == null ? rect.width * (0.28 + Math.random() * .44) : x));
+        const safeY = Math.max(20, Math.min(rect.height - 20, y == null ? rect.height * (0.28 + Math.random() * .44) : y));
+        token.style.left = `${safeX}px`;
+        token.style.top = `${safeY}px`;
+        token.dataset.rotation = `${Math.round(Math.random()*20 - 10)}deg`;
+        token.style.transform = `translate(-50%, -50%) rotate(${token.dataset.rotation})`;
+
+        token.addEventListener('pointerdown', dynamicTokenPointerDown);
+        token.addEventListener('click', dynamicTokenClick);
+        center.appendChild(token);
+        center.classList.add('has-tokens');
+        if (selected) {
+            token.classList.add('selected');
+            dynamicSelectedToken = token;
+        }
+        return token;
+    }
+
+    function dynamicAddSmallToken() {
+        if (!isDynamicMode()) return;
+        dynamicSpawnToken(1);
+        dynamicShowToast('Nueva ficha en la mesa');
+    }
+
+    function dynamicTokenClick(event) {
+        event.preventDefault();
+        const token = event.currentTarget;
+        if (token.classList.contains('dragging')) return;
+
+        const zone = token.dataset.zone;
+        const value = Number(token.dataset.value);
+
+        // Un clic en un amarraco grande ya colocado permite romperlo en cinco pequeñas.
+        if ((zone === 'A' || zone === 'B') && value === 5) {
+            dynamicBreakBig(token, zone);
+            return;
+        }
+
+        if (dynamicSelectedToken && dynamicSelectedToken !== token) {
+            dynamicClearSelection();
+        }
+        token.classList.toggle('selected');
+        dynamicSelectedToken = token.classList.contains('selected') ? token : null;
+
+        if (dynamicSelectedToken) {
+            dynamicShowToast(zone === 'table' ? 'Ahora toca un campo para moverla' : 'Toca la mesa o el otro campo');
+        }
+    }
+
+    function dynamicTokenPointerDown(event) {
+        if (!isDynamicMode() || event.button !== undefined && event.button !== 0) return;
+        const token = event.currentTarget;
+        const parent = token.parentElement;
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startLeft = parseFloat(token.style.left || '0');
+        const startTop = parseFloat(token.style.top || '0');
+        const sourceZone = token.dataset.zone;
+        const value = Number(token.dataset.value);
+
+        dynamicDrag = {
+            token,
+            sourceZone,
+            value,
+            startX,
+            startY,
+            startLeft,
+            startTop,
+            moved: false,
+            pointerId: event.pointerId,
+            sourceParent: parent
+        };
+
+        token.setPointerCapture?.(event.pointerId);
+        token.classList.add('dragging');
+        dynamicClearSelection();
+        event.preventDefault();
+    }
+
+    function dynamicHandlePointerMove(event) {
+        if (!dynamicDrag || event.pointerId !== dynamicDrag.pointerId) return;
+        const d = dynamicDrag;
+        const token = d.token;
+        const dx = event.clientX - d.startX;
+        const dy = event.clientY - d.startY;
+        if (Math.hypot(dx, dy) > 7) d.moved = true;
+
+        if (d.sourceZone === 'table') {
+            const center = document.getElementById('dynamicCenter');
+            if (!center) return;
+            const rect = center.getBoundingClientRect();
+            const x = Math.max(18, Math.min(rect.width - 18, d.startLeft + dx));
+            const y = Math.max(18, Math.min(rect.height - 18, d.startTop + dy));
+            token.style.left = `${x}px`;
+            token.style.top = `${y}px`;
+        } else {
+            token.style.transform = `translate(${dx}px, ${dy}px) scale(1.1)`;
+        }
+
+        dynamicHighlightDropZone(event.clientX, event.clientY);
+        event.preventDefault();
+    }
+
+    function dynamicHandlePointerUp(event) {
+        if (!dynamicDrag || event.pointerId !== dynamicDrag.pointerId) return;
+        const d = dynamicDrag;
+        const token = d.token;
+        token.releasePointerCapture?.(event.pointerId);
+        token.classList.remove('dragging');
+        dynamicClearDropHighlights();
+
+        const targetZone = dynamicDropZoneAtPoint(event.clientX, event.clientY);
+
+        if (d.moved && targetZone) {
+            dynamicMoveToken(d.sourceZone, targetZone, d.value, token, event.clientX, event.clientY);
+        } else if (d.moved) {
+            if (d.sourceZone === 'table') {
+                token.style.transform = `translate(-50%, -50%) rotate(${token.dataset.rotation || '0deg'})`;
+            } else {
+                token.style.transform = '';
+            }
+        }
+
+        dynamicDrag = null;
+        event.preventDefault();
+    }
+
+    function dynamicHighlightDropZone(x, y) {
+        dynamicClearDropHighlights();
+        const target = dynamicDropZoneAtPoint(x, y);
+        if (!target) return;
+        if (target === 'table') {
+            document.getElementById('dynamicCenter')?.classList.add('drop-ready');
+        } else {
+            document.getElementById(`dynamicZone${target}`)?.classList.add('drop-ready');
+        }
+    }
+
+    function dynamicClearDropHighlights() {
+        document.querySelectorAll('.dynamic-zone.drop-ready, .dynamic-center.drop-ready').forEach(el => el.classList.remove('drop-ready'));
+    }
+
+    function dynamicDropZoneAtPoint(x, y) {
+        const center = document.getElementById('dynamicCenter');
+        if (center) {
+            const r = center.getBoundingClientRect();
+            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return 'table';
+        }
+        for (const team of ['A', 'B']) {
+            const zone = document.getElementById(`dynamicZone${team}`);
+            if (!zone) continue;
+            const r = zone.getBoundingClientRect();
+            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return team;
+        }
+        return null;
+    }
+
+    function dynamicMoveToken(sourceZone, targetZone, value, token, clientX = null, clientY = null) {
+        const valueNum = Number(value);
+        const center = document.getElementById('dynamicCenter');
+
+        if (sourceZone === 'table' && targetZone === 'table') {
+            if (center && clientX != null && clientY != null) {
+                const r = center.getBoundingClientRect();
+                token.style.left = `${Math.max(18, Math.min(r.width - 18, clientX - r.left))}px`;
+                token.style.top = `${Math.max(18, Math.min(r.height - 18, clientY - r.top))}px`;
+            }
+            return;
+        }
+
+        if (sourceZone === 'table' && (targetZone === 'A' || targetZone === 'B')) {
+            token.remove();
+            state.scores[targetZone] += valueNum;
+            dynamicShowToast(valueNum === 5 ? '+5 al marcador' : '+1 al marcador');
+        } else if ((sourceZone === 'A' || sourceZone === 'B') && targetZone === 'table') {
+            state.scores[sourceZone] = Math.max(0, state.scores[sourceZone] - valueNum);
+            if (center) {
+                const r = center.getBoundingClientRect();
+                dynamicSpawnToken(valueNum, (clientX == null ? r.width / 2 : clientX - r.left), (clientY == null ? r.height / 2 : clientY - r.top));
+            }
+            token.remove();
+            dynamicShowToast(valueNum === 5 ? 'Amarraco devuelto a la mesa' : 'Ficha devuelta a la mesa');
+        } else if ((sourceZone === 'A' || sourceZone === 'B') && (targetZone === 'A' || targetZone === 'B')) {
+            if (sourceZone === targetZone) {
+                token.style.transform = '';
+                return;
+            }
+            state.scores[sourceZone] = Math.max(0, state.scores[sourceZone] - valueNum);
+            state.scores[targetZone] += valueNum;
+            dynamicShowToast(`${valueNum > 1 ? '+5' : '+1'} transferido`);
+        }
+
+        if (center) center.classList.toggle('has-tokens', !!center.querySelector('.dynamic-token[data-zone="table"]'));
+        // updateUI original sigue siendo la fuente de verdad y también llama a checkPointsWin().
+        updateUI();
+    }
+
+    function dynamicBreakBig(token, team) {
+        if (!token || Number(state.scores[team]) < 5) return;
+        const rect = token.getBoundingClientRect();
+        const centerRect = document.getElementById('dynamicCenter')?.getBoundingClientRect();
+        if (!centerRect) return;
+
+        state.scores[team] -= 5;
+        token.remove();
+
+        const baseX = centerRect.width * 0.5;
+        const baseY = centerRect.height * 0.5;
+        const originX = Math.max(20, Math.min(centerRect.width - 20, rect.left + rect.width / 2 - centerRect.left));
+        const originY = Math.max(20, Math.min(centerRect.height - 20, rect.top + rect.height / 2 - centerRect.top));
+
+        for (let i = 0; i < 5; i++) {
+            const angle = (Math.PI * 2 * i / 5) + Math.PI / 10;
+            dynamicSpawnToken(1,
+                (originX * .38) + (baseX * .62) + Math.cos(angle) * 28,
+                (originY * .38) + (baseY * .62) + Math.sin(angle) * 28
+            );
+        }
+        dynamicShowToast('Amarraco roto: 5 pequeñas en la mesa');
+        updateUI();
+    }
+
+    function dynamicConvertFive() {
+        const center = document.getElementById('dynamicCenter');
+        if (!center) return;
+        const smalls = Array.from(center.querySelectorAll('.dynamic-token[data-zone="table"][data-value="1"]')).slice(0, 5);
+        if (smalls.length < 5) return;
+
+        const rect = center.getBoundingClientRect();
+        let sx = 0, sy = 0;
+        smalls.forEach(token => {
+            token.classList.add('merging');
+            const x = parseFloat(token.style.left) || rect.width / 2;
+            const y = parseFloat(token.style.top) || rect.height / 2;
+            sx += x; sy += y;
+        });
+        const x = sx / 5;
+        const y = sy / 5;
+
+        setTimeout(() => {
+            smalls.forEach(token => token.remove());
+            dynamicSpawnToken(5, x, y);
+            center.classList.add('has-tokens');
+            dynamicShowToast('5 pequeñas → 1 grande');
+        }, 285);
+    }
+
+    function dynamicOrdago(team) {
+        const current = Number(state.scores[team] || 0);
+        const limit = Number(state.config.limit || 40);
+        const remaining = Math.max(0, limit - current);
+        if (remaining <= 0) {
+            dynamicShowToast('Ese equipo ya está en el límite');
+            return;
+        }
+
+        const zone = document.getElementById(`dynamicZone${team}`);
+        const rect = zone?.getBoundingClientRect();
+        const originX = window.innerWidth / 2;
+        const originY = window.innerHeight / 2;
+
+        for (let i = 0; i < Math.min(7, Math.max(3, Math.ceil(remaining / 5))); i++) {
+            const fx = document.createElement('div');
+            fx.className = `dynamic-fx-token ${team === 'A' ? 'a' : 'b'}`;
+            fx.style.left = `${originX}px`;
+            fx.style.top = `${originY}px`;
+            fx.style.setProperty('--fly-x', `${(rect ? rect.left + rect.width * .45 : originX) - originX + (Math.random()*34-17)}px`);
+            fx.style.setProperty('--fly-y', `${(rect ? rect.top + rect.height * .52 : originY) - originY + (Math.random()*34-17)}px`);
+            document.body.appendChild(fx);
+            setTimeout(() => fx.remove(), 650);
+        }
+
+        setTimeout(() => {
+            state.scores[team] = limit;
+            dynamicShowToast(`ÓRDAGO: ${limit} puntos`);
+            updateUI();
+        }, 340);
+    }
+
+    function dynamicClearTable() {
+        const center = document.getElementById('dynamicCenter');
+        if (!center) return;
+        center.querySelectorAll('.dynamic-token[data-zone="table"]').forEach(token => token.remove());
+        dynamicClearSelection();
+        center.classList.remove('has-tokens');
+    }
+
+    // Delegación de pointer events para que funcione con táctil y ratón sin HTML5 drag-and-drop.
+    document.addEventListener('pointermove', dynamicHandlePointerMove, { passive: false });
+    document.addEventListener('pointerup', dynamicHandlePointerUp, { passive: false });
+    document.addEventListener('pointercancel', dynamicHandlePointerUp, { passive: false });
+
+    // Pulsación en el fondo central: si no hay ficha seleccionada, crea una pequeña.
+    document.getElementById('dynamicCenter')?.addEventListener('pointerup', event => {
+        if (dynamicDrag || event.target.closest('.dynamic-token, .dynamic-action, .dynamic-toast')) return;
+        if (dynamicSelectedToken) {
+            const token = dynamicSelectedToken;
+            const sourceZone = token.dataset.zone;
+            const value = Number(token.dataset.value);
+            const rect = event.currentTarget.getBoundingClientRect();
+            dynamicClearSelection();
+            if (sourceZone === 'A' || sourceZone === 'B') {
+                dynamicMoveToken(sourceZone, 'table', value, token, event.clientX, event.clientY);
+            }
+            return;
+        }
+        const rect = event.currentTarget.getBoundingClientRect();
+        dynamicSpawnToken(1, event.clientX - rect.left, event.clientY - rect.top);
+        dynamicShowToast('Nueva ficha en la mesa');
+    });
+
+    // Pulsación en un campo: coloca ahí la ficha previamente seleccionada.
+    ['A','B'].forEach(team => {
+        document.getElementById(`dynamicZone${team}`)?.addEventListener('pointerup', event => {
+            if (dynamicDrag || event.target.closest('.dynamic-token, .dynamic-zone-tool')) return;
+            if (!dynamicSelectedToken) return;
+            const token = dynamicSelectedToken;
+            const sourceZone = token.dataset.zone;
+            const value = Number(token.dataset.value);
+            dynamicClearSelection();
+            dynamicMoveToken(sourceZone, team, value, token);
+        });
+    });
+
+    const __musOriginalUpdateUI = updateUI;
+    updateUI = function() {
+        __musOriginalUpdateUI();
+        dynamicRefreshBoard();
+    };
+
+    const __musOriginalFullReset = fullReset;
+    fullReset = function() {
+        __musOriginalFullReset();
+        dynamicClearTable();
+        dynamicRefreshBoard();
+    };
+
+    const __musOriginalNextStep = nextStep;
+    nextStep = function() {
+        __musOriginalNextStep();
+        if (state.scores.A === 0 && state.scores.B === 0) dynamicClearTable();
+        dynamicRefreshBoard();
+    };
+
     // INIT
     updateUI();
     checkAlbaTheme();
@@ -1604,6 +2571,12 @@
             updatePlayersList(globalRankingData.jugadores);
         }).catch(e => console.log("Carga silenciosa fallida, requiere internet."));
 
+</script>
+<script>
+    // Evita el overscroll de la página mientras se arrastran fichas en la mesa.
+    document.addEventListener('touchmove', function(e) {
+        if (isDynamicMode() && e.target.closest('#dynamicTable')) e.preventDefault();
+    }, {passive:false});
 </script>
 </body>
 </html>
