@@ -336,6 +336,173 @@
         /* =========================================================
            MODO MESA DINÁMICA — CAPA AÑADIDA
            ========================================================= */
+        /* Ajustes responsive del header y fichas de los equipos en móvil */
+        .header-tools {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 2px;
+            min-width: 62px;
+            padding-top: 0;
+        }
+
+        .header-tools-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .header-ranking-control,
+        .header-settings-control {
+            opacity: 0.72;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 1.25rem;
+        }
+
+        .header-settings-control {
+            opacity: 0.62;
+            font-size: 1.18rem;
+        }
+
+        .dynamic-token-field {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+            grid-auto-rows: 32px;
+            gap: 4px;
+            align-items: center;
+            justify-items: center;
+            align-content: center;
+            overflow: hidden;
+            padding: 2px 4px;
+        }
+
+        .dynamic-token-field .dynamic-token {
+            position: relative;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            flex: none;
+        }
+
+        .dynamic-token-field .dynamic-token.small {
+            width: 24px;
+            height: 24px;
+        }
+
+        .dynamic-token-field .dynamic-token.big {
+            width: 31px;
+            height: 31px;
+        }
+
+        .dynamic-token-field .dynamic-token.big::after {
+            font-size: .58rem;
+        }
+
+        .dynamic-token-field .dynamic-token.selected {
+            transform: translateY(-2px) scale(1.08) !important;
+        }
+
+        @media (max-width: 600px) and (orientation: portrait) {
+            .header {
+                height: 15vh;
+                min-height: 92px;
+                padding: 7px 9px 34px;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .global-score-box {
+                width: calc(50% - 31px);
+                min-width: 0;
+                gap: 6px;
+            }
+
+            .score-num {
+                font-size: 2rem;
+                min-width: 34px;
+            }
+
+            .team-info {
+                min-width: 0;
+            }
+
+            .team-title {
+                font-size: .83rem;
+                margin-bottom: 3px;
+                max-width: 86px !important;
+                line-height: 1.05;
+            }
+
+            .sub-scores {
+                gap: 4px;
+                font-size: .68rem;
+            }
+
+            .sub-badge {
+                padding: 2px 4px;
+                gap: 2px;
+            }
+
+            .header-tools {
+                position: absolute;
+                left: 50%;
+                bottom: 3px;
+                transform: translateX(-50%);
+                width: 92px;
+                min-width: 92px;
+                gap: 0;
+            }
+
+            .header-tools-top {
+                gap: 2px;
+            }
+
+            .header-ranking-control,
+            .header-settings-control,
+            .dynamic-mode-toggle {
+                width: 32px;
+                min-width: 32px;
+                height: 31px;
+                min-height: 31px;
+                padding: 0;
+                font-size: 1.05rem;
+            }
+
+            .header-settings-control {
+                width: 38px;
+                height: 23px;
+                min-height: 23px;
+                font-size: 1rem;
+            }
+
+            .dynamic-token-field {
+                grid-template-columns: repeat(auto-fill, minmax(27px, 1fr));
+                grid-auto-rows: 31px;
+                gap: 3px;
+                padding: 2px 3px;
+            }
+
+            .dynamic-token-field .dynamic-token.big {
+                width: 29px;
+                height: 29px;
+            }
+
+            .dynamic-token-field .dynamic-token.small {
+                width: 22px;
+                height: 22px;
+            }
+        }
+
         .dynamic-mode {
             display: none;
             position: relative;
@@ -975,10 +1142,12 @@
             </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 1.35rem; margin-top: 2px;">
-            <div style="opacity: 0.7; cursor: pointer; padding: 7px;" onclick="loadRanking()" aria-label="Clasificación">🏆</div>
-            <button class="dynamic-mode-toggle" id="dynamicModeToggle" onclick="toggleDynamicMode()" aria-label="Cambiar a mesa dinámica" title="Mesa dinámica">🪙</button>
-            <div style="opacity: 0.7; cursor: pointer; padding: 7px;" onclick="openSettings()" aria-label="Ajustes">⚙️</div>
+        <div class="header-tools">
+            <div class="header-tools-top">
+                <button class="header-ranking-control" type="button" onclick="loadRanking()" aria-label="Clasificación" title="Clasificación">🏆</button>
+                <button class="dynamic-mode-toggle" id="dynamicModeToggle" onclick="toggleDynamicMode()" aria-label="Cambiar a mesa dinámica" title="Mesa dinámica">🪙</button>
+            </div>
+            <button class="header-settings-control" type="button" onclick="openSettings()" aria-label="Ajustes" title="Ajustes">⚙️</button>
         </div>
 
         <div class="global-score-box" style="flex-direction: row-reverse; text-align: right;">
@@ -1020,6 +1189,7 @@
                 <div class="dynamic-toast" id="dynamicToast"></div>
                 <div class="dynamic-actions">
                     <button class="dynamic-action add" id="dynamicAddBtn" onclick="dynamicAddSmallToken()">＋ Ficha</button>
+                    <button class="dynamic-action add" id="dynamicPileBtn" onclick="dynamicCreatePile()">＋15 Fichas</button>
                     <button class="dynamic-action convert" id="dynamicConvertBtn" onclick="dynamicConvertFive()" style="display:none;">5 pequeñas → 1 grande</button>
                 </div>
             </div>
@@ -2225,7 +2395,7 @@
         token.addEventListener('pointerdown', dynamicTokenPointerDown);
         token.addEventListener('click', dynamicTokenClick);
         center.appendChild(token);
-        center.classList.add('has-tokens');
+        dynamicUpdateTableControls();
         if (selected) {
             token.classList.add('selected');
             dynamicSelectedToken = token;
@@ -2233,10 +2403,39 @@
         return token;
     }
 
+    function dynamicUpdateTableControls() {
+        const center = document.getElementById('dynamicCenter');
+        const convertBtn = document.getElementById('dynamicConvertBtn');
+        if (!center || !convertBtn) return;
+
+        const looseSmall = center.querySelectorAll('.dynamic-token[data-zone="table"][data-value="1"]').length;
+        convertBtn.style.display = looseSmall >= 5 ? 'block' : 'none';
+        center.classList.toggle('has-tokens', !!center.querySelector('.dynamic-token[data-zone="table"]'));
+    }
+
     function dynamicAddSmallToken() {
         if (!isDynamicMode()) return;
         dynamicSpawnToken(1);
         dynamicShowToast('Nueva ficha en la mesa');
+    }
+
+    function dynamicCreatePile() {
+        if (!isDynamicMode()) return;
+
+        const center = document.getElementById('dynamicCenter');
+        if (!center) return;
+        const rect = center.getBoundingClientRect();
+
+        for (let i = 0; i < 15; i++) {
+            const angle = (Math.PI * 2 * i / 15) + (Math.random() * 0.35 - 0.175);
+            const radius = 20 + Math.random() * 62;
+            const x = rect.width * 0.5 + Math.cos(angle) * radius * 1.35;
+            const y = rect.height * 0.5 + Math.sin(angle) * radius * 0.72;
+            dynamicSpawnToken(1, x, y);
+        }
+
+        dynamicUpdateTableControls();
+        dynamicShowToast('15 fichas sobre la mesa');
     }
 
     function dynamicTokenClick(event) {
@@ -2407,7 +2606,7 @@
             dynamicShowToast(`${valueNum > 1 ? '+5' : '+1'} transferido`);
         }
 
-        if (center) center.classList.toggle('has-tokens', !!center.querySelector('.dynamic-token[data-zone="table"]'));
+        dynamicUpdateTableControls();
         // updateUI original sigue siendo la fuente de verdad y también llama a checkPointsWin().
         updateUI();
     }
@@ -2433,6 +2632,7 @@
                 (originY * .38) + (baseY * .62) + Math.sin(angle) * 28
             );
         }
+        dynamicUpdateTableControls();
         dynamicShowToast('Amarraco roto: 5 pequeñas en la mesa');
         updateUI();
     }
@@ -2457,7 +2657,7 @@
         setTimeout(() => {
             smalls.forEach(token => token.remove());
             dynamicSpawnToken(5, x, y);
-            center.classList.add('has-tokens');
+            dynamicUpdateTableControls();
             dynamicShowToast('5 pequeñas → 1 grande');
         }, 285);
     }
@@ -2499,7 +2699,7 @@
         if (!center) return;
         center.querySelectorAll('.dynamic-token[data-zone="table"]').forEach(token => token.remove());
         dynamicClearSelection();
-        center.classList.remove('has-tokens');
+        dynamicUpdateTableControls();
     }
 
     // Delegación de pointer events para que funcione con táctil y ratón sin HTML5 drag-and-drop.
