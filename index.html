@@ -1556,6 +1556,8 @@
     let newPlayersToSync = new Map();
     let teamPlayerIds = { A: [], B: [] };
     let currentMode = 'equipos'; // 'equipos' o 'jugadores'
+    let playersLoaded = false;   // true cuando ya tenemos la hoja Jugadores del servidor
+    let playersLoadPromise = null;
 
     const isDefault = (name) => {
         if (!name) return true;
@@ -1563,12 +1565,20 @@
         return cleanName === 'XYM' || cleanName === 'MAHO' || cleanName === 'EQ. A' || cleanName === 'EQ. B';
     };
 
+    // Para COMPARAR nombres: sin mayúsculas, sin tildes, sin espacios dobles.
     function normalizePlayerName(name) {
-        return String(name || '').trim().toLowerCase();
+        return String(name || '').trim().replace(/\s+/g, ' ')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    }
+
+    // Para GUARDAR y MOSTRAR nombres: siempre en mayúsculas.
+    function toUpperName(name) {
+        return String(name || '').trim().replace(/\s+/g, ' ').toUpperCase();
     }
 
     function displayPlayer(player) {
-        return String(player?.nombreVisible || player?.nombre || '').trim();
+        return toUpperName(player?.nombreVisible || player?.nombre || '');
     }
 
     function makePlayerId() {
@@ -1590,12 +1600,13 @@
     }
 
     function addOrUpdatePlayer(player, markForSync = false) {
+        const nombre = toUpperName(player.nombre);
+        const etiqueta = toUpperName(player.etiqueta);
         const normalized = {
             id: String(player.id),
-            nombre: String(player.nombre || '').trim(),
-            etiqueta: String(player.etiqueta || '').trim(),
-            nombreVisible: String(player.nombreVisible || '').trim() ||
-                (player.etiqueta ? `${String(player.nombre || '').trim()} · ${String(player.etiqueta).trim()}` : String(player.nombre || '').trim()),
+            nombre,
+            etiqueta,
+            nombreVisible: etiqueta ? `${nombre} · ${etiqueta}` : nombre,
             activo: player.activo !== false
         };
         if (!normalized.id || !normalized.nombre) return null;
@@ -1625,10 +1636,56 @@
 
     // Recibe la hoja Jugadores ya transformada por Apps Script.
     function updatePlayersList(players) {
+        // Jugadores creados en local que aún no se han enviado (se envían al registrar la partida).
+        const pending = Array.from(newPlayersToSync.values());
+
         allPlayers = [];
         playersById = new Map();
         newPlayersToSync.clear();
         (players || []).forEach(player => addOrUpdatePlayer(player, false));
+        if ((players || []).length) playersLoaded = true;
+
+        pending.forEach(p => {
+            if (playersById.has(p.id)) return;
+            const twin = findExactPlayer(p.nombreVisible);
+            if (twin) {
+                // Ya existe en el servidor: reutilizamos ese y redirigimos los equipos a él.
+                ['A', 'B'].forEach(t => {
+                    teamPlayerIds[t] = (teamPlayerIds[t] || []).map(id => id === p.id ? twin.id : id);
+                });
+                return;
+            }
+            addOrUpdatePlayer(p, true);
+        });
+        renderPlayersDatalist();
+    }
+
+    function loadPlayersFromServer() {
+        if (playersLoadPromise) return playersLoadPromise;
+        playersLoadPromise = fetch(SCRIPT_URL)
+            .then(res => res.json())
+            .then(data => {
+                globalRankingData = normalizeRankingResponse(data);
+                updatePlayersList(globalRankingData.jugadores);
+                return playersLoaded;
+            })
+            .catch(e => {
+                console.log('Carga de jugadores fallida, requiere internet.');
+                return false;
+            })
+            .finally(() => { playersLoadPromise = null; });
+        return playersLoadPromise;
+    }
+
+    // Elimina jugadores nuevos (sin enviar) que ya no están en ningún equipo.
+    function pruneOrphanPending() {
+        const inUse = new Set([...(teamPlayerIds.A || []), ...(teamPlayerIds.B || [])]);
+        Array.from(newPlayersToSync.keys()).forEach(id => {
+            if (inUse.has(id)) return;
+            newPlayersToSync.delete(id);
+            playersById.delete(id);
+            allPlayers = allPlayers.filter(p => p.id !== id);
+        });
         renderPlayersDatalist();
     }
 
@@ -1691,82 +1748,52 @@
         setIdentityHint(`player${slot}Input`, `identityHint${slot}`, `label${slot}`);
     }
 
+    function makeDraft(nombre, etiqueta) {
+        return {
+            draft: true,
+            nombre,
+            etiqueta,
+            nombreVisible: etiqueta ? `${nombre} · ${etiqueta}` : nombre
+        };
+    }
+
+    // Interpreta lo escrito SIN modificar nada. Devuelve:
+    //  - un jugador existente,
+    //  - un "borrador" (jugador nuevo, todavía sin crear), o
+    //  - null (hay que corregir algo; ya se ha avisado).
+    // El jugador solo se crea de verdad en saveTeam, cuando todo ha sido validado.
     function getPlayerSelection(rawName, rawLabel) {
         const value = String(rawName || '').trim();
-        const label = String(rawLabel || '').trim();
+        const label = toUpperName(rawLabel);
         if (!value) return null;
 
         const parsed = parseDisplayName(value);
-        const baseName = parsed.nombre;
-        const explicitLabel = label || parsed.etiqueta;
+        const baseName = toUpperName(parsed.nombre);
+        const explicitLabel = label || toUpperName(parsed.etiqueta);
 
-        // Caso 1: el usuario ha elegido una identidad completa del autocompletado.
+        // Caso 1: identidad completa ("NOMBRE · ETIQUETA") elegida del autocompletado o escrita.
         if (!label && parsed.etiqueta) {
-            return findExactPlayer(value);
+            return findExactPlayer(value) || makeDraft(baseName, explicitLabel);
         }
 
         // Caso 2: se ha usado el + y se ha escrito una etiqueta.
         if (explicitLabel) {
             const display = `${baseName} · ${explicitLabel}`;
-            const existing = findExactPlayer(display);
-            if (existing) return existing;
-
-            const newPlayer = addOrUpdatePlayer({
-                id: makePlayerId(),
-                nombre: baseName,
-                etiqueta: explicitLabel,
-                nombreVisible: display,
-                activo: true
-            }, true);
-            renderPlayersDatalist();
-            return newPlayer;
+            return findExactPlayer(display) || makeDraft(baseName, explicitLabel);
         }
 
-        // Caso 3: nombre simple ya existente.
-        // Si hay varias identidades, priorizamos la identidad base sin etiqueta
-        // (por ejemplo, el ALBA histórico P002). La etiqueta solo es necesaria
-        // cuando se quiere elegir explícitamente otra identidad.
+        // Caso 3: nombre simple ya existente. Se prioriza la identidad base sin etiqueta.
         const baseMatches = findBasePlayers(baseName);
         const baseIdentity = baseMatches.find(p => !String(p.etiqueta || '').trim());
         if (baseIdentity) return baseIdentity;
         if (baseMatches.length === 1) return baseMatches[0];
-
-        // Solo exigimos etiqueta cuando existen varias identidades y ninguna
-        // es la identidad base sin etiqueta.
         if (baseMatches.length > 1) {
             alert(`Hay varias identidades llamadas "${baseName}". Selecciona una con su etiqueta en la sugerencia.`);
             return null;
         }
 
-        // Caso 4: jugador totalmente nuevo, sin etiqueta.
-        return addOrUpdatePlayer({
-            id: makePlayerId(),
-            nombre: baseName,
-            etiqueta: '',
-            nombreVisible: baseName,
-            activo: true
-        }, true);
-    }
-
-    async function syncPlayersToServer(players) {
-        const cleanPlayers = (players || []).filter(Boolean);
-        if (!cleanPlayers.length) return;
-
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    accion: 'guardarJugadores',
-                    jugadores: cleanPlayers
-                })
-            });
-            // La identidad ya ha sido enviada de forma independiente.
-        } catch (error) {
-            console.error('Error al sincronizar jugadores:', error);
-            cleanPlayers.forEach(player => newPlayersToSync.set(player.id, player));
-        }
+        // Caso 4: jugador totalmente nuevo.
+        return makeDraft(baseName, '');
     }
 
     function openTeamModal(team) {
@@ -1804,6 +1831,16 @@
         const label1 = document.getElementById('label1').value.trim();
         const label2 = document.getElementById('label2').value.trim();
 
+        // Sin la lista de jugadores del servidor no sabemos quién existe ya:
+        // crear jugadores ahora generaría duplicados (mismo nombre, otro ID).
+        if ((raw1 || raw2) && !playersLoaded) {
+            const ok = await loadPlayersFromServer();
+            if (!ok) {
+                alert('No he podido cargar la lista de jugadores. Comprueba la conexión y vuelve a pulsar Guardar Equipo (así no se crean jugadores duplicados).');
+                return;
+            }
+        }
+
         const selected = [];
         if (raw1) {
             const player = getPlayerSelection(raw1, label1);
@@ -1816,28 +1853,31 @@
             selected.push(player);
         }
 
-        if (selected.length === 2 && selected[0].id === selected[1].id) {
+        if (selected.length === 2 &&
+            (normalizePlayerName(selected[0].nombreVisible) === normalizePlayerName(selected[1].nombreVisible) ||
+             (selected[0].id && selected[0].id === selected[1].id))) {
             alert('No puedes poner al mismo jugador dos veces en el mismo equipo.');
             return;
         }
 
-        const playersCreatedNow = selected.filter(player => newPlayersToSync.has(player.id));
-        if (playersCreatedNow.length) {
-            // Persistimos la identidad al guardar el equipo, no esperamos al final de la partida.
-            await syncPlayersToServer(playersCreatedNow);
-        }
+        // Todo validado: ahora sí se crean los jugadores nuevos (solo en local).
+        // Se enviarán al servidor al registrar la partida, y solo si siguen en un equipo.
+        const players = selected.map(p => p.draft
+            ? addOrUpdatePlayer({ id: makePlayerId(), nombre: p.nombre, etiqueta: p.etiqueta, activo: true }, true)
+            : p);
 
         let finalName = '';
-        if (selected.length === 2) {
-            selected.sort((a, b) => displayPlayer(a).localeCompare(displayPlayer(b), 'es', { sensitivity: 'base' }));
-            finalName = `${displayPlayer(selected[0])} - ${displayPlayer(selected[1])}`;
-        } else if (selected.length === 1) {
-            finalName = displayPlayer(selected[0]);
+        if (players.length === 2) {
+            players.sort((a, b) => displayPlayer(a).localeCompare(displayPlayer(b), 'es', { sensitivity: 'base' }));
+            finalName = `${displayPlayer(players[0])} - ${displayPlayer(players[1])}`;
+        } else if (players.length === 1) {
+            finalName = displayPlayer(players[0]);
         } else {
             finalName = `Eq. ${editingTeam}`;
         }
 
-        teamPlayerIds[editingTeam] = selected.map(p => p.id);
+        teamPlayerIds[editingTeam] = players.map(p => p.id);
+        pruneOrphanPending();
         document.getElementById(`name${editingTeam}`).innerText = finalName;
         closeTeamModal();
         checkAlbaTheme();
@@ -2055,8 +2095,8 @@
         btn.innerText = "Guardando...";
         btn.disabled = true;
 
-        const nameA = document.getElementById('nameA').innerText.trim();
-        const nameB = document.getElementById('nameB').innerText.trim();
+        const nameA = document.getElementById('nameA').innerText.trim().toUpperCase();
+        const nameB = document.getElementById('nameB').innerText.trim().toUpperCase();
 
         const winnerTeam = winnerTeamId === 'A' ? 'A' : 'B';
         const loserTeam = winnerTeamId === 'A' ? 'B' : 'A';
@@ -2072,6 +2112,10 @@
         const winnerIds = teamPlayerIds[winnerTeam] || [];
         const loserIds = teamPlayerIds[loserTeam] || [];
 
+        // Solo se envían los jugadores nuevos que realmente juegan esta partida.
+        const idsInPlay = new Set([...winnerIds, ...loserIds]);
+        const playersToSend = Array.from(newPlayersToSync.values()).filter(p => idsInPlay.has(p.id));
+
         const data = {
             ganador: winner,
             perdedor: loser,
@@ -2081,7 +2125,7 @@
             vacasPerdedor: vacasLoser,
             juegosGanador: juegosWinner,
             juegosPerdedor: juegosLoser,
-            jugadores: Array.from(newPlayersToSync.values())
+            jugadores: playersToSend
         };
 
         fetch(SCRIPT_URL, {
@@ -2096,7 +2140,7 @@
             btn.disabled = false;
             document.getElementById('winModal').style.display = 'none';
             alert("¡Partida registrada en el ranking!");
-            newPlayersToSync.clear();
+            playersToSend.forEach(p => newPlayersToSync.delete(p.id));
             fullReset();
         })
         .catch(error => {
@@ -2914,12 +2958,7 @@
     checkAlbaTheme();
 
     // Descarga silenciosa: jugadores + historial para preparar el autocompletado.
-    fetch(SCRIPT_URL)
-        .then(res => res.json())
-        .then(data => {
-            globalRankingData = normalizeRankingResponse(data);
-            updatePlayersList(globalRankingData.jugadores);
-        }).catch(e => console.log("Carga silenciosa fallida, requiere internet."));
+    loadPlayersFromServer();
 
 </script>
 <script>
