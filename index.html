@@ -1446,6 +1446,17 @@
         </div>
     </div>
 
+    <!-- Easter egg: modal sin botón de cierre (solo se cierra solo o con Sí/No) -->
+    <div class="modal" id="eggModal" style="z-index:300;">
+        <div class="modal-content" style="border-color: var(--accent);">
+            <div class="victory-text" id="eggText" style="margin-bottom:0;"></div>
+            <div id="eggButtons" style="display:none; justify-content:center; gap:15px; margin-top:20px;">
+                <button class="btn-modal" id="eggYes" style="margin-top:0;">Sí</button>
+                <button class="btn-modal" id="eggNo" style="margin-top:0; background:#c62828;">No</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="rankingModal">
         <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
             <h2>Clasificación</h2>
@@ -1546,6 +1557,49 @@
             document.body.classList.add('theme-alba');
         } else {
             document.body.classList.remove('theme-alba');
+        }
+    }
+
+    // --- EASTER EGG 2 ---
+    function teamHasColeta(team) {
+        const name = document.getElementById(`name${team}`).innerText;
+        return name.split(' - ').some(part => normalizePlayerName(part.split(' · ')[0]) === 'coleta');
+    }
+
+    // Mensaje bloqueante: no tiene botón de cierre, se cierra solo a los `ms` milisegundos.
+    function eggMessage(text, ms, done) {
+        document.getElementById('eggText').innerText = text;
+        document.getElementById('eggButtons').style.display = 'none';
+        document.getElementById('eggModal').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('eggModal').style.display = 'none';
+            if (done) done();
+        }, ms);
+    }
+
+    // Pregunta Sí/No (debajo del texto).
+    function eggAsk(text, onYes, onNo) {
+        document.getElementById('eggText').innerText = text;
+        document.getElementById('eggButtons').style.display = 'flex';
+        document.getElementById('eggModal').style.display = 'flex';
+        const close = () => {
+            document.getElementById('eggModal').style.display = 'none';
+            document.getElementById('eggButtons').style.display = 'none';
+        };
+        document.getElementById('eggYes').onclick = () => { close(); onYes(); };
+        document.getElementById('eggNo').onclick = () => { close(); onNo(); };
+    }
+
+    // Decide quién se lleva realmente el juego. Normalmente `team`; si es el equipo de coleta, se pregunta.
+    function resolveGameWinner(team, done) {
+        const other = team === 'A' ? 'B' : 'A';
+        if (teamHasColeta(team) && !teamHasColeta(other)) {
+            eggAsk('¿Le vas a devolver las gafas?',
+                () => done(team),
+                () => eggMessage('Pues el juego para el otro, por listo', 3000, () => done(other))
+            );
+        } else {
+            done(team);
         }
     }
 
@@ -1881,6 +1935,7 @@
         document.getElementById(`name${editingTeam}`).innerText = finalName;
         closeTeamModal();
         checkAlbaTheme();
+        if (teamHasColeta(editingTeam)) eggMessage('Con que usando la aplicación del amigo al que no le devuelves sus gafas, rarete eso no? Si te las pidió amablemente y todo, que desgracia...', 10000);
     }
 
     function setRankingMode(mode) {
@@ -2006,16 +2061,22 @@
             // Continuar:
             state.scores.A = 0;
             state.scores.B = 0;
-            state.games[team]++;
             state.pots = [0,0,0,0]; // Reset
             state.activePhase = 0;
-            
-            // Comprobar si gana la Vaca
-            if (state.games[team] >= state.config.gamesToWinVaca) {
-                triggerWinVaca(team, name);
-            } else {
-                updateUI(); // Sigue
-            }
+            updateUI();
+
+            // Easter egg de coleta: puede cambiar quién se lleva el juego
+            resolveGameWinner(team, finalTeam => {
+                state.games[finalTeam]++;
+                const finalName = document.getElementById(`name${finalTeam}`).innerText;
+
+                // Comprobar si gana la Vaca
+                if (state.games[finalTeam] >= state.config.gamesToWinVaca) {
+                    triggerWinVaca(finalTeam, finalName);
+                } else {
+                    updateUI(); // Sigue
+                }
+            });
         });
     }
 
@@ -2088,7 +2149,7 @@
         updateUI();
     }
 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwd523bEG5jwyIcJonBAsWlwHsQqVHrDIdnnB6Tvqp90jySo3xUc5AOn7gJgg8QOZg/exec'; 
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhWYgm_gwJtV9u9_LYhN8z-oHahO6aUK321fcY_vC4fEcRfE3sk9YWMMTmhiGXkIc/exec'; 
 
     function registrarPartida(winnerTeamId, totalGamesA, totalGamesB) {
         const btn = document.getElementById('winBtn');
