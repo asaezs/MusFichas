@@ -1115,6 +1115,87 @@
             }
         } 
 
+
+        /* ===== HISTORIAL DE MOVIMIENTOS ===== */
+        .header-tools-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        #historyModal .modal-content {
+            display: flex;
+            flex-direction: column;
+            max-height: 85dvh;
+            padding: 16px;
+        }
+        #historyModal h2 { margin-bottom: 2px; }
+
+        .history-sub { font-size: .78rem; color: #aaa; margin-bottom: 10px; flex: none; }
+
+        .history-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            text-align: left;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .history-item:first-child { background: rgba(255,255,255,0.07); border-radius: 6px; }
+
+        .history-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: #90a4ae; }
+        .history-dot.A { background: var(--team-a); }
+        .history-dot.B { background: var(--team-b); }
+
+        .history-body { flex: 1; min-width: 0; }
+        .history-text { font-size: .95rem; line-height: 1.25; word-wrap: break-word; }
+        .history-time { font-size: .7rem; opacity: .55; margin-top: 1px; }
+
+        .history-score {
+            flex: none;
+            font-size: .95rem;
+            font-weight: bold;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .history-score .sa { color: var(--team-a); }
+        .history-score .sb { color: var(--team-b); }
+
+        .history-empty { text-align: center; color: #aaa; padding: 24px 0; }
+
+        .history-close {
+            flex: none;
+            background: transparent;
+            border: none;
+            color: #aaa;
+            margin-top: 12px;
+            text-decoration: underline;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        @media (orientation: landscape) and (max-height: 620px) {
+            #historyModal { padding: 10px; }
+            #historyModal .modal-content {
+                max-width: 520px;
+                max-height: calc(100dvh - 20px);
+                padding: 10px 14px;
+            }
+            #historyModal h2 { font-size: 1.1rem; }
+            .history-sub { margin-bottom: 6px; }
+            .history-item { padding: 5px 6px; }
+            .history-close { margin-top: 6px; }
+        }
+
     </style>
 </head>
 <body>
@@ -1297,7 +1378,10 @@
                 <button class="header-ranking-control" type="button" onclick="loadRanking()" aria-label="Clasificación" title="Clasificación">🏆</button>
                 <button class="dynamic-mode-toggle" id="dynamicModeToggle" onclick="toggleDynamicMode()" aria-label="Cambiar a mesa dinámica" title="Mesa dinámica">🪙</button>
             </div>
-            <button class="header-settings-control" type="button" onclick="openSettings()" aria-label="Ajustes" title="Ajustes">⚙️</button>
+            <span class="header-tools-bottom">
+                <button class="header-settings-control" type="button" onclick="openSettings()" aria-label="Ajustes" title="Ajustes">⚙️</button>
+                <button class="header-settings-control" id="historyBtn" type="button" onclick="openHistory()" aria-label="Historial" title="Historial">🕘</button>
+            </span>
         </div>
 
         <div class="global-score-box" style="flex-direction: row-reverse; text-align: right;">
@@ -1438,6 +1522,15 @@
         </div>
     </div>
 
+    <div class="modal" id="historyModal" onclick="if (event.target === this) closeHistory()">
+        <div class="modal-content">
+            <h2>Historial</h2>
+            <div class="history-sub">Últimos 25 movimientos, el más reciente arriba. A la derecha, cómo quedó el marcador.</div>
+            <div class="history-list" id="historyList"></div>
+            <button class="history-close" type="button" onclick="closeHistory()">Cerrar</button>
+        </div>
+    </div>
+
     <div class="modal" id="winModal">
         <div class="modal-content" style="border-color: var(--accent);">
             <div class="victory-text" id="winTitle">¡VICTORIA!</div>
@@ -1547,6 +1640,80 @@
     };
 
     let pendingAction = null; // Para manejar el flujo de modales
+
+    // --- HISTORIAL DE MOVIMIENTOS (últimos 25) ---
+    const HISTORY_LIMIT = 25;
+    const PHASE_NAMES = ['Grande', 'Chica', 'Pares', 'Juego'];
+    let moveHistory = [];
+
+    function histName(team) {
+        const el = document.getElementById(`name${team}`);
+        const n = (el ? el.innerText : team).trim();
+        return n.length > 24 ? n.slice(0, 23) + '…' : n;
+    }
+
+    // Registra un movimiento (llamar DESPUÉS de modificar el estado: guarda el marcador resultante).
+    function logMove(text, team = null) {
+        moveHistory.unshift({ text, team, time: new Date(), a: state.scores.A, b: state.scores.B });
+        if (moveHistory.length > HISTORY_LIMIT) moveHistory.length = HISTORY_LIMIT;
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        list.textContent = '';
+        if (!moveHistory.length) {
+            const empty = document.createElement('div');
+            empty.className = 'history-empty';
+            empty.textContent = 'Todavía no hay movimientos.';
+            list.appendChild(empty);
+            return;
+        }
+        moveHistory.forEach(m => {
+            const row = document.createElement('div');
+            row.className = 'history-item';
+
+            const dot = document.createElement('div');
+            dot.className = 'history-dot' + (m.team ? ' ' + m.team : '');
+
+            const body = document.createElement('div');
+            body.className = 'history-body';
+            const text = document.createElement('div');
+            text.className = 'history-text';
+            text.textContent = m.text;
+            const time = document.createElement('div');
+            time.className = 'history-time';
+            time.textContent = m.time.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            body.appendChild(text);
+            body.appendChild(time);
+
+            const score = document.createElement('div');
+            score.className = 'history-score';
+            const sa = document.createElement('span');
+            sa.className = 'sa';
+            sa.textContent = m.a;
+            const sb = document.createElement('span');
+            sb.className = 'sb';
+            sb.textContent = m.b;
+            score.appendChild(sa);
+            score.appendChild(document.createTextNode(' – '));
+            score.appendChild(sb);
+
+            row.appendChild(dot);
+            row.appendChild(body);
+            row.appendChild(score);
+            list.appendChild(row);
+        });
+    }
+
+    function openHistory() {
+        renderHistory();
+        document.getElementById('historyModal').style.display = 'flex';
+        document.getElementById('historyList').scrollTop = 0;
+    }
+
+    function closeHistory() {
+        document.getElementById('historyModal').style.display = 'none';
+    }
 
     // Leopardo detect
     function checkAlbaTheme() {
@@ -1995,6 +2162,8 @@
         if (newVal !== null && newVal.trim() !== "" && !isNaN(newVal)) {
             const numVal = parseInt(newVal);
             
+            if (numVal !== currentVal) logMove(`${typeName} de ${histName(team)} editados: ${currentVal} → ${numVal}`, team);
+
             // Actualizamos el estado interno
             if (isVaca) {
                 state.vacas[team] = numVal;
@@ -2025,8 +2194,16 @@
     function selectPhase(idx) { state.activePhase = idx; updateUI(); }
 
     function addToActivePot(amount) {
+        const phaseName = PHASE_NAMES[state.activePhase];
+        const before = state.pots[state.activePhase];
         if (amount === -100) state.pots[state.activePhase] = 0;
         else state.pots[state.activePhase] += amount;
+        if (amount === -100) {
+            if (before !== 0) logMove(`${phaseName}: bote borrado (había ${before})`);
+        } else {
+            const label = amount === 2 ? 'Envido +2' : amount === 40 ? 'ÓRDAGO' : `+${amount}`;
+            logMove(`${phaseName}: ${label} al bote (ahora ${state.pots[state.activePhase]})`);
+        }
         updateUI();
     }
 
@@ -2037,13 +2214,17 @@
 
         state.scores[winnerTeam] += potValue;
         state.pots[phaseIdx] = 0;
+        logMove(`${PHASE_NAMES[phaseIdx]}: +${potValue} para ${histName(winnerTeam)}`, winnerTeam);
         if (state.activePhase < 3) state.activePhase++;
         updateUI();
     }
 
     function manualAdd(team, amount) {
+        const before = state.scores[team];
         state.scores[team] += amount;
         if (state.scores[team] < 0) state.scores[team] = 0;
+        const delta = state.scores[team] - before;
+        if (delta !== 0) logMove(`Manual: ${delta > 0 ? '+' : ''}${delta} para ${histName(team)}`, team);
         updateUI();
     }
 
@@ -2069,6 +2250,7 @@
             resolveGameWinner(team, finalTeam => {
                 state.games[finalTeam]++;
                 const finalName = document.getElementById(`name${finalTeam}`).innerText;
+                logMove(`🎮 Juego para ${histName(finalTeam)} (juegos ${state.games.A} – ${state.games.B}). Marcador a 0`, finalTeam);
 
                 // Comprobar si gana la Vaca
                 if (state.games[finalTeam] >= state.config.gamesToWinVaca) {
@@ -2090,6 +2272,7 @@
             state.games.A = 0;
             state.games.B = 0;
             state.vacas[team]++;
+            logMove(`🏆 Vaca para ${histName(team)} (vacas ${state.vacas.A} – ${state.vacas.B})`, team);
 
             // Comprobar si gana la Partida
             if (state.vacas[team] >= state.config.vacasToWinMatch) {
@@ -2146,6 +2329,7 @@
         state.vacas = {A:0, B:0};
         state.pots = [0,0,0,0];
         state.activePhase = 0;
+        logMove('Marcador reiniciado');
         updateUI();
     }
 
@@ -2842,6 +3026,7 @@
         if (sourceZone === 'table' && (targetZone === 'A' || targetZone === 'B')) {
             token.remove();
             state.scores[targetZone] += valueNum;
+            logMove(`Mesa: +${valueNum} para ${histName(targetZone)}`, targetZone);
             dynamicShowToast(valueNum === 5 ? '+5 al marcador' : '+1 al marcador');
         } else if ((sourceZone === 'A' || sourceZone === 'B') && targetZone === 'table') {
             state.scores[sourceZone] = Math.max(0, state.scores[sourceZone] - valueNum);
@@ -2850,6 +3035,7 @@
                 dynamicSpawnToken(valueNum, (clientX == null ? r.width / 2 : clientX - r.left), (clientY == null ? r.height / 2 : clientY - r.top));
             }
             token.remove();
+            logMove(`Mesa: -${valueNum} a ${histName(sourceZone)} (devuelto a la mesa)`, sourceZone);
             dynamicShowToast(valueNum === 5 ? 'Amarraco devuelto a la mesa' : 'Ficha devuelta a la mesa');
         } else if ((sourceZone === 'A' || sourceZone === 'B') && (targetZone === 'A' || targetZone === 'B')) {
             if (sourceZone === targetZone) {
@@ -2858,6 +3044,7 @@
             }
             state.scores[sourceZone] = Math.max(0, state.scores[sourceZone] - valueNum);
             state.scores[targetZone] += valueNum;
+            logMove(`Mesa: ${valueNum} pasa de ${histName(sourceZone)} a ${histName(targetZone)}`, targetZone);
             dynamicShowToast(`${valueNum > 1 ? '+5' : '+1'} transferido`);
         }
 
@@ -2888,6 +3075,7 @@
             );
         }
         dynamicUpdateTableControls();
+        logMove(`Mesa: -5 a ${histName(team)} (amarraco roto en 5 fichas)`, team);
         dynamicShowToast('Amarraco roto: 5 pequeñas en la mesa');
         updateUI();
     }
@@ -2944,6 +3132,7 @@
 
         setTimeout(() => {
             state.scores[team] = limit;
+            logMove(`ÓRDAGO de ${histName(team)}: marcador a ${limit}`, team);
             dynamicShowToast(`ÓRDAGO: ${limit} puntos`);
             updateUI();
         }, 340);
